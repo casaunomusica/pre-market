@@ -175,13 +175,15 @@ interface CustomMix {
 
 // --- Components ---
 
-function ProductImage({ color, name }: { prompt?: string; color: string; name: string }) {
+function ProductImage({ color, icon }: { prompt?: string; color: string; name?: string; icon: string }) {
   return (
     <div
       className="w-full h-full flex items-center justify-center"
       style={{ backgroundColor: color + '20' }}
     >
-      <span className="text-4xl opacity-50">🍄</span>
+      <span className="text-4xl opacity-50" aria-hidden="true">
+        {icon}
+      </span>
     </div>
   );
 }
@@ -237,7 +239,12 @@ function ProductCard({
         className="w-full aspect-square rounded-xl flex items-center justify-center text-4xl group-hover:scale-105 transition-transform mb-2 overflow-hidden relative"
         style={{ backgroundColor: product.color + '10' }}
       >
-        <ProductImage prompt={product.imagePrompt} color={product.color} name={product.name} />
+        <ProductImage
+          prompt={product.imagePrompt}
+          color={product.color}
+          name={product.name}
+          icon={product.icon}
+        />
         <div className="absolute top-3 right-3 flex flex-col gap-2">
           <button 
             onClick={(e) => {
