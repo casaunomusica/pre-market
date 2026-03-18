@@ -708,11 +708,14 @@ export default function App() {
                   <input 
                     type="range"
                     min="100"
-                    max={Math.min(350, 350 - (customMixTotalMg - customMix.ingredients.cositas))}
+                    max={350}
                     step="50"
                     value={customMix.ingredients.cositas}
                     onChange={(e) => {
-                      const val = parseInt(e.target.value);
+                      const raw = parseInt(e.target.value);
+                      const otherTotal = customMixTotalMg - customMix.ingredients.cositas;
+                      const allowed = Math.max(100, 350 - otherTotal);
+                      const val = Math.min(raw, allowed);
                       setCustomMix(prev => ({
                         ...prev,
                         ingredients: { ...prev.ingredients, cositas: val }
@@ -749,11 +752,14 @@ export default function App() {
                   <input 
                     type="range"
                     min="0"
-                    max={Math.max(0, 350 - (customMixTotalMg - customMix.ingredients.melena))}
+                    max={350}
                     step="10"
                     value={customMix.ingredients.melena}
                     onChange={(e) => {
-                      const val = parseInt(e.target.value);
+                      const raw = parseInt(e.target.value);
+                      const otherTotal = customMixTotalMg - customMix.ingredients.melena;
+                      const allowed = Math.max(0, 350 - otherTotal);
+                      const val = Math.min(raw, allowed);
                       setCustomMix(prev => ({
                         ...prev,
                         ingredients: { ...prev.ingredients, melena: val }
@@ -802,12 +808,16 @@ export default function App() {
                   <input 
                     type="range"
                     min="0"
-                    max={Math.max(0, 350 - (customMixTotalMg - customMix.ingredients[customMix.isAshwagandhaActive ? 'ashwagandha' : 'reishi']))}
+                    max={350}
                     step="10"
                     value={customMix.ingredients[customMix.isAshwagandhaActive ? 'ashwagandha' : 'reishi']}
                     onChange={(e) => {
-                      const val = parseInt(e.target.value);
+                      const raw = parseInt(e.target.value);
                       const key = customMix.isAshwagandhaActive ? 'ashwagandha' : 'reishi';
+                      const currentVal = customMix.ingredients[key] || 0;
+                      const otherTotal = customMixTotalMg - currentVal;
+                      const allowed = Math.max(0, 350 - otherTotal);
+                      const val = Math.min(raw, allowed);
                       setCustomMix(prev => ({
                         ...prev,
                         ingredients: { ...prev.ingredients, [key]: val }
