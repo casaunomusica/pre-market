@@ -200,7 +200,7 @@ function ProductCard({
             <p className="text-xs text-[#1a1a1a]/70 leading-relaxed italic">
               {product.description}
             </p>
-            <div className="mt-6 text-[10px] uppercase tracking-widest opacity-40 font-sans">
+            <div className="mt-6 text-xs uppercase tracking-widest text-[#1a1a1a]/70 font-sans">
               {product.capsules} caps · {product.mg} mg
             </div>
           </motion.div>
@@ -218,9 +218,9 @@ function ProductCard({
               e.stopPropagation();
               setShowInfo(true);
             }}
-            className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-colors"
+            className="w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-colors flex items-center justify-center"
           >
-            <Info className="w-4 h-4 text-[#1a1a1a]/40" />
+            <Info className="w-5 h-5 text-[#1a1a1a]/70" />
           </button>
         </div>
       </div>
@@ -233,7 +233,7 @@ function ProductCard({
         </div>
         
         <div className="flex flex-col gap-3 mt-auto">
-          <span className="text-[10px] uppercase tracking-widest opacity-40 font-sans">
+          <span className="text-xs uppercase tracking-widest text-[#1a1a1a]/70 font-sans">
             {product.capsules} caps · {product.mg} mg {product.category === 'extract' && '· (10:1)'}
           </span>
           
@@ -241,18 +241,18 @@ function ProductCard({
             <div className="flex items-center justify-between w-full bg-[#f5f5f0] rounded-full p-1">
               <button 
                 onClick={onRemove}
-                className="w-8 h-8 rounded-full bg-white border border-[#1a1a1a]/5 flex items-center justify-center hover:bg-[#1a1a1a]/5 disabled:opacity-30"
+                className="w-11 h-11 rounded-full bg-white border border-[#1a1a1a]/5 flex items-center justify-center hover:bg-[#1a1a1a]/5 disabled:opacity-30"
                 disabled={quantity === 0}
               >
-                <Minus className="w-3 h-3" />
+                <Minus className="w-4 h-4" />
               </button>
               <span className={cn("text-sm font-medium", quantity === 0 && "opacity-30")}>{quantity}</span>
               <button 
                 onClick={onAdd}
-                className="w-8 h-8 rounded-full text-white flex items-center justify-center hover:opacity-80 transition-opacity"
+                className="w-11 h-11 rounded-full text-white flex items-center justify-center hover:opacity-80 transition-opacity"
                 style={{ backgroundColor: product.color }}
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -472,14 +472,14 @@ export default function App() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setShowPasswordModal(true)}
-            className="p-2 hover:bg-[#1a1a1a]/5 rounded-full transition-colors"
+            className="w-11 h-11 hover:bg-[#1a1a1a]/5 rounded-full transition-colors flex items-center justify-center"
           >
             <span className="text-xl opacity-60">🍄</span>
           </button>
           <div className="relative">
             <ShoppingBag className="w-6 h-6" />
             {totalBottles > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#5A5A40] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-sans">
+              <span className="absolute -top-1 -right-1 bg-[#5A5A40] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-sans">
                 {totalBottles}
               </span>
             )}
@@ -490,9 +490,9 @@ export default function App() {
       <main className="max-w-2xl mx-auto px-6 pt-6 pb-12">
         <section className="mb-10">
           <h2 className="text-xl font-light mb-3 italic">Adaptógenos · Extractos 10:1</h2>
-          <div className="text-sm text-[#1a1a1a]/60 leading-relaxed mb-6 space-y-2">
+          <div className="text-base text-[#1a1a1a]/80 leading-relaxed mb-6 space-y-2">
             <p>Extractos estandarizados, mucho más potentes que el hongo molido.</p>
-            <p className="text-[#1a1a1a]/60">Frascos de <span className="font-bold text-[#1a1a1a]">30 cápsulas · 500 mg c/u.</span></p>
+            <p className="text-[#1a1a1a]/80">Frascos de <span className="font-bold text-[#1a1a1a]">30 cápsulas · 500 mg c/u.</span></p>
             <p className="italic">Seleccioná tus adaptógenos y envianos la lista por WhatsApp para confirmar stock y entrega.</p>
           </div>
           
@@ -543,7 +543,7 @@ export default function App() {
 
           <div className="p-6 bg-white rounded-[24px] border border-[#1a1a1a]/5">
             <h3 className="text-base font-medium mb-2">La Consulta Adaptogénica</h3>
-            <div className="text-sm text-[#1a1a1a]/60 leading-relaxed mb-4 space-y-1">
+            <div className="text-base text-[#1a1a1a]/80 leading-relaxed mb-4 space-y-1">
               <p>Un breve chat privado para observar cómo estás y orientar la elección de adaptógenos.</p>
               <p>Lleva <span className="font-bold text-[#1a1a1a]">5 minutos</span>.</p>
             </div>
@@ -557,7 +557,7 @@ export default function App() {
             </a>
           </div>
 
-          <p className="mt-8 text-center text-[11px] text-[#1a1a1a]/30 italic px-6 pb-4">
+          <p className="mt-8 text-center text-sm text-[#1a1a1a]/70 italic px-6 pb-4 leading-relaxed">
             Antes de consumir, evalúe su situación personal con un profesional de la salud.
           </p>
         </section>
@@ -575,11 +575,11 @@ export default function App() {
             <div className="max-w-2xl mx-auto flex flex-col gap-4">
               <div className="flex justify-between items-end">
                 <div>
-                  <p className="text-xs uppercase tracking-widest text-[#1a1a1a]/40 mb-1">Total Estimado</p>
+                  <p className="text-xs uppercase tracking-widest text-[#1a1a1a]/70 mb-1">Total Estimado</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-light">${total.toLocaleString()}</span>
                     {discount > 0 && (
-                      <span className="text-sm line-through text-[#1a1a1a]/30">${subtotal.toLocaleString()}</span>
+                      <span className="text-sm line-through text-[#1a1a1a]/60">${subtotal.toLocaleString()}</span>
                     )}
                   </div>
                 </div>
@@ -628,13 +628,13 @@ export default function App() {
                 </div>
                 <button 
                   onClick={() => setIsSecretMarketOpen(false)}
-                  className="p-2 hover:bg-[#1a1a1a]/5 rounded-full"
+                  className="w-11 h-11 hover:bg-[#1a1a1a]/5 rounded-full flex items-center justify-center"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <p className="text-sm text-[#1a1a1a]/60 mb-6 leading-relaxed">
+              <p className="text-base text-[#1a1a1a]/80 mb-6 leading-relaxed">
                 Armá tu frasco personalizado. Cada frasco contiene 16 cápsulas. 
                 Máximo 350 mg total por cápsula.
               </p>
@@ -653,7 +653,7 @@ export default function App() {
                     className="p-4 bg-white rounded-2xl border border-[#1a1a1a]/5 hover:border-[#5A5A40]/30 transition-all text-left group"
                   >
                     <p className="text-xs font-bold text-[#5A5A40] mb-1 uppercase tracking-wider">{preset.name}</p>
-                    <p className="text-[10px] text-[#1a1a1a]/50 leading-tight">{preset.description}</p>
+                    <p className="text-sm text-[#1a1a1a]/80 leading-snug">{preset.description}</p>
                   </button>
                 ))}
                 <button
@@ -661,7 +661,7 @@ export default function App() {
                   className="p-4 bg-[#5A5A40]/5 rounded-2xl border border-[#5A5A40]/10 hover:bg-[#5A5A40]/10 transition-all text-center flex flex-col items-center justify-center gap-1"
                 >
                   <Info className="w-4 h-4 text-[#5A5A40]" />
-                  <span className="text-[10px] font-bold text-[#5A5A40] uppercase tracking-wider">Información sobre protocolos</span>
+                  <span className="text-xs font-bold text-[#5A5A40] uppercase tracking-wider">Información sobre protocolos</span>
                 </button>
               </div>
 
@@ -723,7 +723,7 @@ export default function App() {
                     }}
                     className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#5A5A40] bg-[#f5f5f0]"
                   />
-                  <div className="flex justify-between text-[10px] text-[#1a1a1a]/30 font-mono">
+                  <div className="flex justify-between text-xs text-[#1a1a1a]/70 font-mono">
                     <span>100mg</span>
                     <span>150mg</span>
                     <span>200mg</span>
@@ -780,7 +780,7 @@ export default function App() {
                         onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: false }))}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                          !customMix.isAshwagandhaActive ? "bg-white shadow-sm text-[#7D2D2D]" : "text-[#1a1a1a]/40"
+                          !customMix.isAshwagandhaActive ? "bg-white shadow-sm text-[#7D2D2D]" : "text-[#1a1a1a]/70"
                         )}
                       >
                         Reishi
@@ -789,7 +789,7 @@ export default function App() {
                         onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: true }))}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                          customMix.isAshwagandhaActive ? "bg-white shadow-sm text-[#D4B483]" : "text-[#1a1a1a]/40"
+                          customMix.isAshwagandhaActive ? "bg-white shadow-sm text-[#D4B483]" : "text-[#1a1a1a]/70"
                         )}
                       >
                         Ashwagandha
@@ -846,14 +846,14 @@ export default function App() {
                       <div className="flex flex-col">
                         <span className={cn("font-medium transition-all", !customMix.isNiacinaEnabled && "opacity-40")}>Niacina (B3)</span>
                         {!customMix.isNiacinaEnabled ? (
-                          <span className="text-[10px] text-[#F27D26] font-bold uppercase tracking-wider">Toca para habilitar</span>
+                          <span className="text-xs text-[#F27D26] font-bold uppercase tracking-wider">Toca para habilitar</span>
                         ) : (
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               setShowNiacinaModal(true);
                             }}
-                            className="text-[10px] text-red-500 font-bold hover:underline text-left mt-0.5"
+                            className="text-xs text-red-600 font-bold hover:underline text-left mt-0.5"
                           >
                             Ver contraindicaciones
                           </button>
@@ -895,7 +895,7 @@ export default function App() {
                                 "py-2 rounded-xl text-xs font-bold transition-all border",
                                 customMix.ingredients.niacina === mg 
                                   ? "bg-[#F27D26] text-white border-[#F27D26]" 
-                                  : "bg-[#f5f5f0] text-[#1a1a1a]/40 border-transparent hover:border-[#F27D26]/20",
+                                  : "bg-[#f5f5f0] text-[#1a1a1a]/70 border-transparent hover:border-[#F27D26]/20",
                                 isDisabled && "opacity-20 cursor-not-allowed"
                               )}
                             >
@@ -931,19 +931,19 @@ export default function App() {
               <div className="flex items-center justify-between mb-12">
                 <div>
                   <p className="text-sm font-medium">Cantidad de frascos (16 caps)</p>
-                  <p className="text-xs text-[#1a1a1a]/40">10% OFF llevando 2 o 3</p>
+                  <p className="text-xs text-[#1a1a1a]/70">10% OFF llevando 2 o 3</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <button 
                     onClick={() => setCustomMix(p => ({ ...p, jars: Math.max(1, p.jars - 1) }))}
-                    className="w-10 h-10 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center"
+                    className="w-11 h-11 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="text-xl font-medium w-8 text-center">{customMix.jars}</span>
                   <button 
                     onClick={() => setCustomMix(p => ({ ...p, jars: Math.min(3, p.jars + 1) }))}
-                    className="w-10 h-10 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center"
+                    className="w-11 h-11 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -968,7 +968,7 @@ export default function App() {
                       <span className="text-sm opacity-40">ARS</span>
                     </div>
                     {customMixPricing.descuentoAplicado && (
-                      <p className="text-[12px] text-[#4CAF50] font-bold mt-2">
+                      <p className="text-sm text-[#2F7D32] font-bold mt-2">
                         (10% OFF aplicado)
                       </p>
                     )}
