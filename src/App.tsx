@@ -150,7 +150,7 @@ const ADAPTOGEN_ALIASES: Record<string, string> = {
 };
 
 const MUSHROOM_INGREDIENTS: MushroomIngredient[] = [
-  { id: 'cositas', name: 'Cositas', costPerMg: 60, color: '#5A5A40' },
+  { id: 'cositas', name: 'La Fuerza', costPerMg: 60, color: '#5A5A40' },
   { id: 'melena', name: 'Melena de León', costPerMg: 50, color: '#8B7D6B' },
   { id: 'reishi', name: 'Reishi', costPerMg: 50, color: '#7D2D2D' },
   { id: 'ashwagandha', name: 'Ashwagandha', costPerMg: 50, color: '#D4B483' },
@@ -158,9 +158,9 @@ const MUSHROOM_INGREDIENTS: MushroomIngredient[] = [
 ];
 
 const PRESETS = [
-  { id: 'fadiman', name: 'Fadiman Clásico', description: '200mg Cositas', ingredients: { cositas: 200, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
-  { id: 'stamets', name: 'Stamets Stack', description: '200mg Cositas, 100mg Melena, 50mg Niacina', ingredients: { cositas: 200, melena: 100, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
-  { id: 'nocturno', name: 'Nocturno', description: '200mg Cositas, 100mg Reishi, 50mg Melena', ingredients: { cositas: 200, melena: 50, reishi: 100, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
+  { id: 'fadiman', name: 'Fadiman Clásico', description: '200mg La Fuerza', ingredients: { cositas: 200, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
+  { id: 'stamets', name: 'Stamets Stack', description: '200mg La Fuerza, 100mg Melena, 50mg Niacina', ingredients: { cositas: 200, melena: 100, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
+  { id: 'nocturno', name: 'Nocturno', description: '200mg La Fuerza, 100mg Reishi, 50mg Melena', ingredients: { cositas: 200, melena: 50, reishi: 100, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
 ];
 
 const WHATSAPP_NUMBER = '5493515915643';
@@ -699,17 +699,17 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-[#f5f5f0] overflow-y-auto"
+            className="fixed inset-0 z-[60] bg-[#F0E6D2]/90 overflow-y-auto"
           >
             <div className="max-w-2xl mx-auto px-6 pt-8 pb-12">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
-                  <FlaskConical className="w-6 h-6 text-[#5A5A40]" />
-                  <h2 className="text-2xl serif italic">Cápsulas a Medida</h2>
+                  <FlaskConical className="w-6 h-6 text-[#2F4F4F]" />
+                  <h2 className="text-2xl serif italic text-[#2F4F4F]">Cápsulas a Medida</h2>
                 </div>
                 <button 
                   onClick={() => setIsSecretMarketOpen(false)}
-                  className="w-11 h-11 hover:bg-[#1a1a1a]/5 rounded-full flex items-center justify-center"
+                  className="w-11 h-11 hover:bg-[#2F4F4F]/10 rounded-full flex items-center justify-center"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -731,18 +731,18 @@ export default function App() {
                       isNiacinaEnabled: preset.niacinaEnabled,
                       isAshwagandhaActive: preset.ashwagandhaActive
                     }))}
-                    className="p-4 bg-white rounded-2xl border border-[#1a1a1a]/5 hover:border-[#5A5A40]/30 transition-all text-left group"
+                    className="p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-[#2F4F4F]/15 hover:border-[#AB5541]/30 transition-all text-left group"
                   >
-                    <p className="text-xs font-bold text-[#5A5A40] mb-1 uppercase tracking-wider">{preset.name}</p>
+                    <p className="text-xs font-bold text-[#2F4F4F] mb-1 uppercase tracking-wider">{preset.name}</p>
                     <p className="text-sm text-[#1a1a1a]/80 leading-snug">{preset.description}</p>
                   </button>
                 ))}
                 <button
                   onClick={() => setShowProtocolInfo(!showProtocolInfo)}
-                  className="p-4 bg-[#5A5A40]/5 rounded-2xl border border-[#5A5A40]/10 hover:bg-[#5A5A40]/10 transition-all text-center flex flex-col items-center justify-center gap-1"
+                  className="p-4 bg-[#AB5541]/10 rounded-2xl border border-[#2F4F4F]/15 hover:bg-[#AB5541]/15 transition-all text-center flex flex-col items-center justify-center gap-1"
                 >
-                  <Info className="w-4 h-4 text-[#5A5A40]" />
-                  <span className="text-xs font-bold text-[#5A5A40] uppercase tracking-wider">Información sobre protocolos</span>
+                  <Info className="w-4 h-4 text-[#2F4F4F]" />
+                  <span className="text-xs font-bold text-[#2F4F4F] uppercase tracking-wider">Información sobre protocolos</span>
                 </button>
               </div>
 
@@ -750,7 +750,7 @@ export default function App() {
                 <motion.div 
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
-                  className="mb-10 p-6 bg-white rounded-3xl border border-[#5A5A40]/20 overflow-hidden"
+                  className="mb-10 p-6 bg-white/85 backdrop-blur-sm rounded-3xl border border-[#2F4F4F]/15 overflow-hidden"
                 >
                   <div className="space-y-6 text-base text-[#1a1a1a]/80 leading-relaxed">
                     <div>
@@ -770,17 +770,17 @@ export default function App() {
               )}
 
               <div className="space-y-6 mb-12">
-                {/* 1. Cositas */}
-                <div className="flex flex-col gap-4 bg-white p-6 rounded-3xl border border-[#1a1a1a]/5">
+                {/* 1. La Fuerza */}
+                <div className="flex flex-col gap-4 bg-white/85 backdrop-blur-sm p-6 rounded-3xl border border-[#2F4F4F]/15">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#5A5A40]/10 flex items-center justify-center text-xl">✨</div>
-                      <span className="font-medium">Cositas</span>
+                      <div className="w-10 h-10 rounded-full bg-[#AB5541]/12 flex items-center justify-center text-xl">✨</div>
+                      <span className="font-medium text-[#2F4F4F]">La Fuerza</span>
                     </div>
                     <motion.span 
                       key={customMix.ingredients.cositas}
-                      initial={{ scale: 1.2, color: '#5A5A40' }}
-                      animate={{ scale: 1, color: '#5A5A40' }}
+                      initial={{ scale: 1.2, color: '#2F4F4F' }}
+                      animate={{ scale: 1, color: '#2F4F4F' }}
                       className="font-mono font-bold"
                     >
                       {customMix.ingredients.cositas} mg
@@ -802,9 +802,9 @@ export default function App() {
                         ingredients: { ...prev.ingredients, cositas: val }
                       }));
                     }}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#5A5A40] bg-[#f5f5f0]"
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#2F4F4F] bg-[#F0E6D2]/60"
                   />
-                  <div className="flex justify-between text-xs text-[#1a1a1a]/70 font-mono">
+                  <div className="flex justify-between text-xs text-[#2F4F4F]/70 font-mono">
                     <span>100mg</span>
                     <span>150mg</span>
                     <span>200mg</span>
@@ -815,11 +815,11 @@ export default function App() {
                 </div>
 
                 {/* 2. Melena de León */}
-                <div className="flex flex-col gap-4 bg-white p-6 rounded-3xl border border-[#1a1a1a]/5">
+                <div className="flex flex-col gap-4 bg-white/85 backdrop-blur-sm p-6 rounded-3xl border border-[#2F4F4F]/15">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#8B7D6B]/10 flex items-center justify-center text-xl">🍄</div>
-                      <span className="font-medium">Melena de León</span>
+                      <div className="w-10 h-10 rounded-full bg-[#F0E6D2]/70 flex items-center justify-center text-xl">🍄</div>
+                      <span className="font-medium text-[#2F4F4F]">Melena de León</span>
                     </div>
                     <motion.span 
                       key={customMix.ingredients.melena}
@@ -846,22 +846,22 @@ export default function App() {
                         ingredients: { ...prev.ingredients, melena: val }
                       }));
                     }}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#8B7D6B] bg-[#f5f5f0]"
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#8B7D6B] bg-[#F0E6D2]/60"
                   />
                 </div>
 
                 {/* 3. Reishi / Ashwagandha */}
                 <div className={cn(
-                  "flex flex-col gap-4 bg-white p-6 rounded-3xl border transition-all",
-                  customMix.isNiacinaEnabled ? "opacity-30 grayscale pointer-events-none border-[#1a1a1a]/5" : "border-[#1a1a1a]/5"
+                  "flex flex-col gap-4 bg-white/85 backdrop-blur-sm p-6 rounded-3xl border transition-all",
+                  customMix.isNiacinaEnabled ? "opacity-30 grayscale pointer-events-none border-[#2F4F4F]/15" : "border-[#2F4F4F]/15"
                 )}>
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 bg-[#f5f5f0] p-1 rounded-xl">
+                    <div className="flex items-center gap-2 bg-[#F0E6D2]/60 p-1 rounded-xl">
                       <button 
                         onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: false }))}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                          !customMix.isAshwagandhaActive ? "bg-white shadow-sm text-[#7D2D2D]" : "text-[#1a1a1a]/70"
+                          !customMix.isAshwagandhaActive ? "bg-[#F0E6D2] shadow-sm text-[#7D2D2D]" : "text-[#2F4F4F]/70"
                         )}
                       >
                         Reishi
@@ -870,7 +870,7 @@ export default function App() {
                         onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: true }))}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                          customMix.isAshwagandhaActive ? "bg-white shadow-sm text-[#D4B483]" : "text-[#1a1a1a]/70"
+                          customMix.isAshwagandhaActive ? "bg-[#F0E6D2] shadow-sm text-[#D4B483]" : "text-[#2F4F4F]/70"
                         )}
                       >
                         Ashwagandha
@@ -904,15 +904,15 @@ export default function App() {
                         ingredients: { ...prev.ingredients, [key]: val }
                       }));
                     }}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[#f5f5f0]"
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[#F0E6D2]/60"
                     style={{ accentColor: customMix.isAshwagandhaActive ? '#D4B483' : '#7D2D2D' }}
                   />
                 </div>
 
                 {/* 4. Niacina (B3) */}
                 <div className={cn(
-                  "flex flex-col gap-4 bg-white p-6 rounded-3xl border transition-all relative overflow-hidden",
-                  !customMix.isNiacinaEnabled ? "border-[#1a1a1a]/5" : "border-[#F27D26]/30 shadow-sm shadow-[#F27D26]/5"
+                  "flex flex-col gap-4 bg-white/85 backdrop-blur-sm p-6 rounded-3xl border transition-all relative overflow-hidden",
+                  !customMix.isNiacinaEnabled ? "border-[#2F4F4F]/15" : "border-[#F27D26]/30 shadow-sm shadow-[#F27D26]/5"
                 )}>
                   <div className="flex justify-between items-center cursor-pointer" onClick={() => {
                     setCustomMix(prev => ({ ...prev, isNiacinaEnabled: !prev.isNiacinaEnabled }));
@@ -920,7 +920,7 @@ export default function App() {
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all",
-                        customMix.isNiacinaEnabled ? "bg-[#F27D26]/20" : "bg-[#1a1a1a]/5 grayscale"
+                        customMix.isNiacinaEnabled ? "bg-[#F27D26]/20" : "bg-[#2F4F4F]/10 grayscale"
                       )}>
                         💊
                       </div>
@@ -1000,11 +1000,11 @@ export default function App() {
                     {customMixTotalMg} / 350 mg
                   </span>
                 </div>
-                <div className="w-full bg-[#1a1a1a]/5 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-[#2F4F4F]/15 h-2 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, (customMixTotalMg / 350) * 100)}%` }}
-                    className="h-full bg-[#5A5A40]"
+                    className="h-full bg-[#AB5541]"
                   />
                 </div>
               </div>
@@ -1133,8 +1133,7 @@ export default function App() {
               animate={{ scale: 1, opacity: 1 }}
               className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl serif italic">Acceso Reservado</h3>
+            <div className="flex justify-end items-center mb-6">
                 <button onClick={() => setShowPasswordModal(false)}>
                   <X className="w-5 h-5" />
                 </button>
