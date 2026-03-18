@@ -123,6 +123,32 @@ const PRODUCTS: Product[] = [
   }
 ];
 
+function normalizeKey(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace(/[^a-z0-9]+/g, ' ') // collapse punctuation
+    .trim()
+    .replace(/\s+/g, '-');
+}
+
+const ADAPTOGEN_ALIASES: Record<string, string> = {
+  // Spanish / variants
+  'melena-de-leon': 'melena-extract',
+  'melena-de-leon-clasica': 'melena-classic',
+  'melena-de-leon-clasico': 'melena-classic',
+  // English common names
+  'lions-mane': 'melena-extract',
+  'lions-mane-mushroom': 'melena-extract',
+  'reishi': 'reishi-extract',
+  'cordyceps': 'cordyceps-extract',
+  'ashwagandha': 'ashwagandha-extract',
+  'tremella': 'tremella-extract',
+  'snow-fungus': 'tremella-extract',
+};
+
 const MUSHROOM_INGREDIENTS: MushroomIngredient[] = [
   { id: 'cositas', name: 'Cositas', costPerMg: 60, color: '#5A5A40' },
   { id: 'melena', name: 'Melena de León', costPerMg: 50, color: '#8B7D6B' },
@@ -283,6 +309,52 @@ export default function App() {
   });
 
   // --- Logic ---
+
+  useEffect(() => {
+    // Precarga de carrito desde URL (sin router): ?a=melena-extract,reishi-extract o ?a=Melena%20de%20Le%C3%B3n
+    // También soporta cantidad opcional: melena-extract:2
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('a') || params.get('adaptogens');
+    if (!raw) return;
+
+    const byId = new Map(PRODUCTS.map(p => [p.id, p]));
+    const byNameKey = new Map(PRODUCTS.map(p => [normalizeKey(p.name), p]));
+
+    const items = raw
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    setCart(prev => {
+      let next = [...prev];
+
+      for (const token of items) {
+        const [left, qtyRaw] = token.split(':');
+        const qty = Math.max(1, Number.parseInt(qtyRaw ?? '1', 10) || 1);
+        const key = left.trim();
+        if (!key) continue;
+
+        const direct = byId.get(key);
+        const normalized = normalizeKey(key);
+        const aliasedId = ADAPTOGEN_ALIASES[normalized];
+        const fromAlias = aliasedId ? byId.get(aliasedId) : undefined;
+        const fromName = byNameKey.get(normalized);
+        const product = direct || fromAlias || fromName;
+        if (!product) continue;
+
+        const existing = next.find(i => i.product.id === product.id);
+        if (existing) {
+          next = next.map(i =>
+            i.product.id === product.id ? { ...i, quantity: i.quantity + qty } : i
+          );
+        } else {
+          next = [...next, { product, quantity: qty }];
+        }
+      }
+
+      return next;
+    });
+  }, []);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
