@@ -203,18 +203,18 @@ function ProductCard({
   const [showInfo, setShowInfo] = useState(false);
 
   return (
-    <div className="bg-white rounded-[32px] p-4 flex flex-col border border-[#1a1a1a]/5 hover:shadow-md transition-all group h-full relative overflow-hidden">
+    <div className="bg-white rounded-[32px] p-4 flex flex-col border border-[#2F4F4F]/15 hover:shadow-md transition-all group h-full relative overflow-hidden">
       <AnimatePresence>
         {showInfo && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute inset-0 z-10 bg-white/95 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center"
+            className="absolute inset-0 z-10 bg-[#F0E6D2] p-6 flex flex-col items-center justify-center text-center"
           >
             <button 
               onClick={() => setShowInfo(false)}
-              className="absolute top-4 right-4 p-2 hover:bg-[#1a1a1a]/5 rounded-full"
+              className="absolute top-4 right-4 p-2 hover:bg-[#2F4F4F]/10 rounded-full"
             >
               <X className="w-5 h-5" />
             </button>
@@ -225,10 +225,10 @@ function ProductCard({
               {product.icon}
             </div>
             <h4 className="font-medium mb-2">{product.name}</h4>
-            <p className="text-xs text-[#1a1a1a]/70 leading-relaxed italic">
+            <p className="text-xs text-[#2F4F4F]/70 leading-relaxed italic">
               {product.description}
             </p>
-            <div className="mt-6 text-xs uppercase tracking-widest text-[#1a1a1a]/70 font-sans">
+            <div className="mt-6 text-xs uppercase tracking-widest text-[#2F4F4F]/70 font-sans">
               {product.capsules} caps · {product.mg} mg
             </div>
           </motion.div>
@@ -251,9 +251,9 @@ function ProductCard({
               e.stopPropagation();
               setShowInfo(true);
             }}
-            className="w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-colors flex items-center justify-center"
+            className="w-11 h-11 bg-white rounded-full shadow-sm hover:bg-white transition-colors flex items-center justify-center"
           >
-            <Info className="w-5 h-5 text-[#1a1a1a]/70" />
+            <Info className="w-5 h-5 text-[#2F4F4F]/70" />
           </button>
         </div>
       </div>
@@ -266,15 +266,15 @@ function ProductCard({
         </div>
         
         <div className="flex flex-col gap-3 mt-auto">
-          <span className="text-xs uppercase tracking-widest text-[#1a1a1a]/70 font-sans">
+          <span className="text-xs uppercase tracking-widest text-[#2F4F4F]/70 font-sans">
             {product.capsules} caps · {product.mg} mg {product.category === 'extract' && '· (10:1)'}
           </span>
           
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center justify-between w-full bg-[#f5f5f0] rounded-full p-1">
+            <div className="flex items-center justify-between w-full bg-[#F0E6D2] rounded-full p-1">
               <button 
                 onClick={onRemove}
-                className="w-11 h-11 rounded-full bg-white border border-[#1a1a1a]/5 flex items-center justify-center hover:bg-[#1a1a1a]/5 disabled:opacity-30"
+                className="w-11 h-11 rounded-full bg-white border border-[#2F4F4F]/15 flex items-center justify-center hover:bg-[#2F4F4F]/10 disabled:opacity-30"
                 disabled={quantity === 0}
               >
                 <Minus className="w-4 h-4" />
@@ -544,23 +544,23 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f0] text-[#1a1a1a] font-serif selection:bg-[#5A5A40] selection:text-white">
+    <div className="min-h-screen bg-[#F0E6D2] text-[#2F4F4F] font-serif selection:bg-[#AB5541] selection:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#f5f5f0]/80 backdrop-blur-md border-b border-[#1a1a1a]/5 px-6 py-3 flex justify-between items-center">
+      <header className="sticky top-0 z-40 bg-[#F0E6D2] border-b border-[#2F4F4F]/15 px-6 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <h1 className="text-base font-medium tracking-tight serif uppercase letter-spacing-wider">Armá tu pedido</h1>
         </div>
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setShowPasswordModal(true)}
-            className="w-11 h-11 hover:bg-[#1a1a1a]/5 rounded-full transition-colors flex items-center justify-center"
+            className="w-11 h-11 hover:bg-[#2F4F4F]/10 rounded-full transition-colors flex items-center justify-center"
           >
             <span className="text-xl opacity-60">🍄</span>
           </button>
           <div className="relative">
             <ShoppingBag className="w-6 h-6" />
             {totalBottles > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#5A5A40] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-sans">
+              <span className="absolute -top-1 -right-1 bg-[#AB5541] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-sans">
                 {totalBottles}
               </span>
             )}
@@ -593,19 +593,19 @@ export default function App() {
           </div>
         </section>
 
-        <section className="bg-white rounded-[32px] p-8 shadow-sm border border-[#1a1a1a]/5">
+        <section className="bg-white rounded-[32px] p-8 shadow-sm border border-[#2F4F4F]/15">
           <div className="flex items-center gap-3 mb-6">
-            <Info className="w-5 h-5 text-[#5A5A40]" />
+            <Info className="w-5 h-5 text-[#2F4F4F]" />
             <h3 className="font-medium">Promociones por cantidad</h3>
           </div>
-          <ul className="space-y-3 text-sm text-[#1a1a1a]/70">
+          <ul className="space-y-3 text-sm text-[#2F4F4F]/70">
             <li className="flex justify-between">
               <span>2 frascos o más</span>
-              <span className="font-bold text-[#5A5A40]">10% OFF</span>
+              <span className="font-bold text-[#AB5541]">10% OFF</span>
             </li>
             <li className="flex justify-between">
               <span>4 frascos o más</span>
-              <span className="font-bold text-[#5A5A40]">20% OFF</span>
+              <span className="font-bold text-[#AB5541]">20% OFF</span>
             </li>
           </ul>
         </section>
@@ -615,30 +615,30 @@ export default function App() {
             href="https://unmundomejor.notion.site/Preguntas-Frecuentes-Adapt-genos-b9d4a197923840ecb7f0913a87aca348?pvs=143" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="block p-6 bg-white rounded-[24px] border border-[#1a1a1a]/5 hover:border-[#5A5A40]/30 transition-colors group"
+            className="block p-6 bg-white rounded-[24px] border border-[#2F4F4F]/15 hover:border-[#AB5541]/30 transition-colors group"
           >
-            <p className="text-sm font-medium text-[#1a1a1a]/80 group-hover:text-[#5A5A40] transition-colors">
+            <p className="text-sm font-medium text-[#2F4F4F]/80 group-hover:text-[#AB5541] transition-colors">
               👉 Preguntas frecuentes sobre adaptógenos
             </p>
           </a>
 
-          <div className="p-6 bg-white rounded-[24px] border border-[#1a1a1a]/5">
+          <div className="p-6 bg-white rounded-[24px] border border-[#2F4F4F]/15">
             <h3 className="text-base font-medium mb-2">La Consulta Adaptogénica</h3>
-            <div className="text-base text-[#1a1a1a]/80 leading-relaxed mb-4 space-y-1">
+            <div className="text-base text-[#2F4F4F]/80 leading-relaxed mb-4 space-y-1">
               <p>Un breve chat privado para observar cómo estás y orientar la elección de adaptógenos.</p>
-              <p>Lleva <span className="font-bold text-[#1a1a1a]">5 minutos</span>.</p>
+              <p>Lleva <span className="font-bold text-[#2F4F4F]">5 minutos</span>.</p>
             </div>
             <a 
               href="https://laconsulta.vercel.app" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-block text-sm font-medium text-[#5A5A40] hover:underline underline-offset-4"
+              className="inline-block text-sm font-medium text-[#2F4F4F] hover:underline underline-offset-4"
             >
               👉 https://laconsulta.vercel.app
             </a>
           </div>
 
-          <p className="mt-8 text-center text-sm text-[#1a1a1a]/70 italic px-6 pb-4 leading-relaxed">
+          <p className="mt-8 text-center text-sm text-[#2F4F4F]/70 italic px-6 pb-4 leading-relaxed">
             Antes de consumir, evalúe su situación personal con un profesional de la salud.
           </p>
         </section>
@@ -651,23 +651,23 @@ export default function App() {
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#1a1a1a]/10 p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[#F0E6D2] border-t border-[#2F4F4F]/15 p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"
           >
             <div className="max-w-2xl mx-auto flex flex-col gap-4">
               <div className="flex justify-between items-end">
                 <div>
-                  <p className="text-xs uppercase tracking-widest text-[#1a1a1a]/70 mb-1">Total Estimado</p>
+                  <p className="text-xs uppercase tracking-widest text-[#2F4F4F]/70 mb-1">Total Estimado</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-light">${total.toLocaleString()}</span>
                     {discount > 0 && (
-                      <span className="text-sm line-through text-[#1a1a1a]/60">${subtotal.toLocaleString()}</span>
+                      <span className="text-sm line-through text-[#2F4F4F]/60">${subtotal.toLocaleString()}</span>
                     )}
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-[#5A5A40]">{totalBottles} frascos</p>
+                  <p className="text-sm font-medium text-[#2F4F4F]">{totalBottles} frascos</p>
                   {discount > 0 && (
-                    <p className="text-xs text-[#5A5A40] font-bold">-{discount * 100}% aplicado</p>
+                    <p className="text-xs text-[#AB5541] font-bold">-{discount * 100}% aplicado</p>
                   )}
                 </div>
               </div>
@@ -675,14 +675,14 @@ export default function App() {
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => handleWhatsApp(true)}
-                  className="flex items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-full py-4 px-6 hover:bg-[#333] transition-colors font-sans text-sm font-medium"
+                  className="flex items-center justify-center gap-2 bg-[#2F4F4F] text-white rounded-full py-4 px-6 hover:bg-[#244040] transition-colors font-sans text-sm font-medium"
                 >
                   <MessageCircle className="w-4 h-4" />
                   Consultar Stock
                 </button>
                 <button 
                   onClick={() => handleWhatsApp(false)}
-                  className="flex items-center justify-center gap-2 border border-[#1a1a1a]/20 rounded-full py-4 px-6 hover:bg-[#1a1a1a]/5 transition-colors font-sans text-sm font-medium"
+                  className="flex items-center justify-center gap-2 border border-[#2F4F4F]/20 rounded-full py-4 px-6 hover:bg-[#2F4F4F]/10 transition-colors font-sans text-sm font-medium"
                 >
                   Guardar en WhatsApp
                 </button>
@@ -699,7 +699,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-[#F0E6D2]/90 overflow-y-auto"
+            className="fixed inset-0 z-[60] bg-[#F0E6D2] overflow-y-auto"
           >
             <div className="max-w-2xl mx-auto px-6 pt-8 pb-12">
               <div className="flex justify-between items-center mb-6">
@@ -731,7 +731,7 @@ export default function App() {
                       isNiacinaEnabled: preset.niacinaEnabled,
                       isAshwagandhaActive: preset.ashwagandhaActive
                     }))}
-                    className="p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-[#2F4F4F]/15 hover:border-[#AB5541]/30 transition-all text-left group"
+                    className="p-4 bg-white rounded-2xl border border-[#2F4F4F]/15 hover:border-[#AB5541]/30 transition-all text-left group"
                   >
                     <p className="text-xs font-bold text-[#2F4F4F] mb-1 uppercase tracking-wider">{preset.name}</p>
                     <p className="text-sm text-[#1a1a1a]/80 leading-snug">{preset.description}</p>
@@ -750,7 +750,7 @@ export default function App() {
                 <motion.div 
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
-                  className="mb-10 p-6 bg-white/85 backdrop-blur-sm rounded-3xl border border-[#2F4F4F]/15 overflow-hidden"
+                  className="mb-10 p-6 bg-white rounded-3xl border border-[#2F4F4F]/15 overflow-hidden"
                 >
                   <div className="space-y-6 text-base text-[#1a1a1a]/80 leading-relaxed">
                     <div>
@@ -771,7 +771,7 @@ export default function App() {
 
               <div className="space-y-6 mb-12">
                 {/* 1. La Fuerza */}
-                <div className="flex flex-col gap-4 bg-white/85 backdrop-blur-sm p-6 rounded-3xl border border-[#2F4F4F]/15">
+                <div className="flex flex-col gap-4 bg-white p-6 rounded-3xl border border-[#2F4F4F]/15">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-[#AB5541]/12 flex items-center justify-center text-xl">✨</div>
@@ -815,7 +815,7 @@ export default function App() {
                 </div>
 
                 {/* 2. Melena de León */}
-                <div className="flex flex-col gap-4 bg-white/85 backdrop-blur-sm p-6 rounded-3xl border border-[#2F4F4F]/15">
+                <div className="flex flex-col gap-4 bg-white p-6 rounded-3xl border border-[#2F4F4F]/15">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-[#F0E6D2]/70 flex items-center justify-center text-xl">🍄</div>
@@ -852,7 +852,7 @@ export default function App() {
 
                 {/* 3. Reishi / Ashwagandha */}
                 <div className={cn(
-                  "flex flex-col gap-4 bg-white/85 backdrop-blur-sm p-6 rounded-3xl border transition-all",
+                  "flex flex-col gap-4 bg-white p-6 rounded-3xl border transition-all",
                   customMix.isNiacinaEnabled ? "opacity-30 grayscale pointer-events-none border-[#2F4F4F]/15" : "border-[#2F4F4F]/15"
                 )}>
                   <div className="flex justify-between items-center">
@@ -911,7 +911,7 @@ export default function App() {
 
                 {/* 4. Niacina (B3) */}
                 <div className={cn(
-                  "flex flex-col gap-4 bg-white/85 backdrop-blur-sm p-6 rounded-3xl border transition-all relative overflow-hidden",
+                  "flex flex-col gap-4 bg-white p-6 rounded-3xl border transition-all relative overflow-hidden",
                   !customMix.isNiacinaEnabled ? "border-[#2F4F4F]/15" : "border-[#F27D26]/30 shadow-sm shadow-[#F27D26]/5"
                 )}>
                   <div className="flex justify-between items-center cursor-pointer" onClick={() => {
