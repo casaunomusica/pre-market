@@ -360,7 +360,8 @@ export default function App() {
     // Discount (10% off if Q >= 2)
     const S_disc = Q >= 2 ? S * 0.9 : S;
     
-    // Final Total (Price to customer) with rounding to nearest 100
+    // Final totals (Price to customer) with rounding to nearest 100
+    const totalSinDescuento = Math.round((S + 5500) / 100) * 100;
     const T = Math.round((S_disc + 5500) / 100) * 100;
 
     return {
@@ -368,6 +369,7 @@ export default function App() {
       costoPorFrasco: C_jar,
       subtotal: S,
       subtotalConDescuento: S_disc,
+      totalSinDescuento,
       totalFinal: T,
       descuentoAplicado: Q >= 2
     };
@@ -394,11 +396,11 @@ export default function App() {
       });
       message += `\n`;
 
-      const roundedSubtotal = Math.round(customMixPricing.subtotal / 100) * 100;
-      const roundedDiscount = Math.round((customMixPricing.subtotal * 0.1) / 100) * 100;
+      const roundedTotalSinDescuento = Math.round(customMixPricing.totalSinDescuento / 100) * 100;
+      const roundedDiscount = Math.max(0, roundedTotalSinDescuento - customMixPricing.totalFinal);
 
       if (customMixPricing.descuentoAplicado) {
-        message += `Subtotal: $${roundedSubtotal.toLocaleString()}\n`;
+        message += `Subtotal: $${roundedTotalSinDescuento.toLocaleString()}\n`;
         message += `Descuento 10%: -$${roundedDiscount.toLocaleString()}\n`;
         message += `*Total productos: $${customMixPricing.totalFinal.toLocaleString()}*\n`;
       } else {
@@ -955,7 +957,7 @@ export default function App() {
                   <div className="w-full">
                     {customMixPricing.descuentoAplicado && (
                       <p className="text-sm text-[#888] line-through mb-4">
-                        ${(Math.round(customMixPricing.subtotal / 100) * 100).toLocaleString()}
+                        ${customMixPricing.totalSinDescuento.toLocaleString()}
                       </p>
                     )}
                     <p className="text-sm font-bold uppercase tracking-widest text-[#1a1a1a] mb-1">
