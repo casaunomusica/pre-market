@@ -673,7 +673,7 @@ export default function App() {
                   animate={{ height: 'auto', opacity: 1 }}
                   className="mb-10 p-6 bg-white rounded-3xl border border-[#5A5A40]/20 overflow-hidden"
                 >
-                  <div className="space-y-6 text-xs text-[#1a1a1a]/70 leading-relaxed">
+                  <div className="space-y-6 text-base text-[#1a1a1a]/80 leading-relaxed">
                     <div>
                       <p className="font-bold text-[#1a1a1a] mb-1">Protocolo Fadiman:</p>
                       <p>Consiste en un día de dosificación seguido de dos días sin consumo (esquema 1:2). Se fundamenta en el aprovechamiento del "efecto del segundo día" o <span className="italic">afterglow</span> para mantener los beneficios residuales sin generar tolerancia farmacológica.</p>
