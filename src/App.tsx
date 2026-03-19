@@ -722,7 +722,7 @@ export default function App() {
 
               <p className="text-base text-[#1a1a1a]/80 mb-6 leading-relaxed">
                 Armá tu frasco personalizado. Cada frasco contiene 16 cápsulas. 
-                Máximo 350 mg total por cápsula.
+                Máximo 350 mg total por cápsula. Podés elegir un protocolo o ajustar los valores según tu necesidad.
               </p>
 
               {/* Presets */}
@@ -779,7 +779,7 @@ export default function App() {
                 <div className="flex flex-col gap-4 bg-white p-6 rounded-3xl border border-[#2F4F4F]/15">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#AB5541]/12 flex items-center justify-center text-xl">✨</div>
+                      <div className="w-10 h-10 rounded-full bg-[#AB5541]/12 flex items-center justify-center text-xl">⚡</div>
                       <span className="font-medium text-[#2F4F4F]">La Fuerza</span>
                     </div>
                     <motion.span 
