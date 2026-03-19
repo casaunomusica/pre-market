@@ -553,7 +553,7 @@ export default function App() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[#F0E6D2] border-b border-[#2F4F4F]/15 px-6 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <h1 className="text-base font-medium tracking-tight serif uppercase letter-spacing-wider">Mercadito</h1>
+          <h1 className="text-base font-medium tracking-tight serif uppercase letter-spacing-wider">Tienda de adaptógenos</h1>
         </div>
         <div className="flex items-center gap-4">
           <button 
