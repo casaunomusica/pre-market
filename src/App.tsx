@@ -455,9 +455,11 @@ export default function App() {
   }, [customMix]);
 
   const handleWhatsApp = (toSeller: boolean, isCustom: boolean = false) => {
-    let message = `¡Hola! Quisiera consultar este pedido:\n\n`;
+    // Market (main cart): "Hola Charlie" (Secret Market mantiene "Hola" sin nombre)
+    let message = `¡Hola Charlie! Quisiera consultar este pedido:\n\n`;
 
     if (isCustom) {
+      message = `¡Hola! Quisiera consultar este pedido:\n\n`;
       message += `Mi mezcla personalizada – ${customMix.jars} frascos (${customMix.jars * 16} cápsulas)\n`;
       
       const activeIngredients = Object.entries(customMix.ingredients)
@@ -499,16 +501,19 @@ export default function App() {
         message += `• ${item.quantity}x *${productName}*${suffix}\n`;
       });
       message += `\n`;
-      message += `Subtotal: $${subtotal.toLocaleString()}\n`;
-      if (discount > 0) {
-        message += `Descuento ${discount * 100}%: -$${(subtotal * discount).toLocaleString()}\n`;
+      // "Subtotal" solo tiene sentido cuando hay oferta (2 o más frascos).
+      if (totalBottles >= 2) {
+        message += `Subtotal: $${subtotal.toLocaleString()}\n`;
+        if (discount > 0) {
+          message += `Descuento ${discount * 100}%: -$${(subtotal * discount).toLocaleString()}\n`;
+        }
       }
       message += `*Total productos: $${total.toLocaleString()}*\n`;
     }
 
     message += `\nEntrega:\n`;
     message += `• Retiro por Tribunales (sin costo)\n`;
-    message += `• Envío por Uber Moto (costo extra ≈ $3.000–$8.000)\n\n`;
+    message += `• Envío por Uber Moto _(costo extra ≈ $3.000–$8.000)_\n\n`;
     message += `→ Pago único (productos + envío si aplica) por transferencia una vez que confirme stock y costo exacto de envío.\n`;
     message += `Alias: *unmundomejor.gracias*\n\n`;
     message += `¿Tenés stock disponible? ¿Para cuándo podrías tenerlo listo?\n`;
@@ -548,7 +553,7 @@ export default function App() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[#F0E6D2] border-b border-[#2F4F4F]/15 px-6 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <h1 className="text-base font-medium tracking-tight serif uppercase letter-spacing-wider">Armá tu pedido</h1>
+          <h1 className="text-base font-medium tracking-tight serif uppercase letter-spacing-wider">Mercadito</h1>
         </div>
         <div className="flex items-center gap-4">
           <button 
