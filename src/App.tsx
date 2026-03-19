@@ -158,9 +158,9 @@ const MUSHROOM_INGREDIENTS: MushroomIngredient[] = [
 ];
 
 const PRESETS = [
-  { id: 'fadiman', name: 'Fadiman Clásico', description: '200mg La Fuerza', ingredients: { cositas: 200, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
-  { id: 'stamets', name: 'Stamets Stack', description: '200mg La Fuerza, 100mg Melena, 50mg Niacina', ingredients: { cositas: 200, melena: 100, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
-  { id: 'nocturno', name: 'Nocturno', description: '200mg La Fuerza, 100mg Reishi, 50mg Melena', ingredients: { cositas: 200, melena: 50, reishi: 100, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
+  { id: 'fadiman', name: 'Fadiman Clásico', description: '200 mg La Fuerza', ingredients: { cositas: 200, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
+  { id: 'stamets', name: 'Stamets Stack', description: '200 mg La Fuerza, 100 mg Melena, 50 mg Niacina', ingredients: { cositas: 200, melena: 100, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
+  { id: 'nocturno', name: 'Nocturno', description: '200 mg La Fuerza, 100 mg Reishi, 50 mg Melena', ingredients: { cositas: 200, melena: 50, reishi: 100, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
 ];
 
 const WHATSAPP_NUMBER = '5493515915643';
