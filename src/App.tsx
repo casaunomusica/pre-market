@@ -575,7 +575,7 @@ export default function App() {
 
       <main className="max-w-2xl mx-auto px-6 pt-6 pb-12">
         <section className="mb-10">
-          <h2 className="text-xl font-light mb-3 italic">Adaptógenos · Extractos 10:1</h2>
+          <h2 className="text-xl font-light mb-3 italic">Hongos y plantas medicinales · Extractos 10:1</h2>
           <div className="text-base text-[#1a1a1a]/80 leading-relaxed mb-6 space-y-2">
             <p>Extractos estandarizados, mucho más potentes que el hongo molido.</p>
             <p className="text-[#1a1a1a]/80">Frascos de <span className="font-bold text-[#1a1a1a]">30 cápsulas · 500 mg c/u.</span></p>
