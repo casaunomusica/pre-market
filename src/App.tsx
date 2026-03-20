@@ -175,15 +175,19 @@ interface CustomMix {
 
 // --- Components ---
 
-function ProductImage({ color, icon }: { prompt?: string; color: string; name?: string; icon: string }) {
+function ProductImage({ color, productId, alt }: { prompt?: string; color: string; productId: string; alt: string }) {
+  const src = `/product-icons/${productId}.png`;
   return (
     <div
       className="w-full h-full flex items-center justify-center"
       style={{ backgroundColor: color + '20' }}
     >
-      <span className="text-4xl opacity-50" aria-hidden="true">
-        {icon}
-      </span>
+      <img
+        src={src}
+        alt={alt}
+        className="w-[70%] h-[70%] object-contain select-none pointer-events-none"
+        draggable={false}
+      />
     </div>
   );
 }
@@ -222,7 +226,12 @@ function ProductCard({
               className="w-12 h-12 rounded-full flex items-center justify-center text-2xl mb-4"
               style={{ backgroundColor: product.color + '20' }}
             >
-              {product.icon}
+              <img
+                src={`/product-icons/${product.id}.png`}
+                alt={product.name}
+                className="w-[70%] h-[70%] object-contain select-none pointer-events-none"
+                draggable={false}
+              />
             </div>
             <h4 className="font-medium mb-2">{product.name}</h4>
             <p className="text-xs text-[#2F4F4F]/70 leading-relaxed italic">
@@ -242,8 +251,8 @@ function ProductCard({
         <ProductImage
           prompt={product.imagePrompt}
           color={product.color}
-          name={product.name}
-          icon={product.icon}
+          productId={product.id}
+          alt={product.name}
         />
         <div className="absolute top-3 right-3 flex flex-col gap-2">
           <button 
