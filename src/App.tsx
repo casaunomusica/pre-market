@@ -110,18 +110,6 @@ const PRODUCTS: Product[] = [
     imagePrompt: 'Minimalist watercolor botanical illustration of Tremella mushroom (Snow fungus), translucent white frilly ruffles, jelly-like texture, soft cool background, delicate washes'
   },
   {
-    id: 'chlorella-extract',
-    name: 'Chlorella',
-    description: 'Detox de metales pesados · Sistema inmune · Oxigenación celular',
-    price: 29000,
-    capsules: 30,
-    mg: 500,
-    icon: '🌿',
-    category: 'extract',
-    color: '#2D6A4F',
-    imagePrompt: 'Scientific illustration of Chlorella microalgae cells, vibrant green, clean style, soft cream background'
-  },
-  {
     id: 'melena-classic',
     name: 'Melena de León · Clásica',
     description: 'Hongo entero molido • 1 o 2 cápsulas por día',
@@ -132,6 +120,18 @@ const PRODUCTS: Product[] = [
     category: 'classic',
     color: '#9E8B85', // Darker muted brown for legibility
     imagePrompt: 'Minimalist watercolor illustration of ground mushroom powder in a wooden spoon, Melena de León texture, soft neutral background, artistic style'
+  },
+  {
+    id: 'chlorella-extract',
+    name: 'Chlorella',
+    description: 'Detox de metales pesados · Sistema inmune · Oxigenación celular',
+    price: 29000,
+    capsules: 30,
+    mg: 500,
+    icon: '🌿',
+    category: 'extract',
+    color: '#2D6A4F',
+    imagePrompt: 'Scientific illustration of Chlorella microalgae cells, vibrant green, clean style, soft cream background'
   }
 ];
 
