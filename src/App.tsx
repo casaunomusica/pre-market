@@ -103,7 +103,7 @@ const PRODUCTS: Product[] = [
     description: 'Ácido hialurónico vegetal · Hidratación profunda',
     price: 32000,
     capsules: 30,
-    mg: 620,
+    mg: 500,
     icon: '🍄',
     category: 'extract',
     color: '#5E9E98', // Darker teal for legibility
@@ -289,7 +289,7 @@ function ProductCard({
         
         <div className="flex flex-col gap-3 mt-auto">
           <span className="text-xs uppercase tracking-widest text-[#2F4F4F]/70 font-sans">
-            {product.capsules} caps · {product.mg} mg {product.category === 'extract' && '· (10:1)'}
+            {product.capsules} caps · {product.mg} mg {product.category === 'extract' && product.id !== 'chlorella-extract' && '· (10:1)'}
           </span>
           
           <div className="flex items-center justify-between w-full">
@@ -514,7 +514,7 @@ export default function App() {
       cart.forEach(item => {
         let productName = item.product.name;
         let suffix = "";
-        if (item.product.category === 'extract') {
+        if (item.product.category === 'extract' && item.product.id !== 'chlorella-extract') {
           suffix = " (10:1)";
         } else if (item.product.category === 'classic') {
           productName = productName.replace(' · Clásica', '');
