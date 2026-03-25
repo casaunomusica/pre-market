@@ -32,6 +32,12 @@ interface Product {
   category: 'extract' | 'classic';
   color: string;
   imagePrompt: string;
+  /** Modal: etiqueta corta (ej. fase / tipo de protocolo) */
+  infoTag?: string;
+  infoHeadline?: string;
+  infoSubheadline?: string;
+  infoFooter?: string;
+  infoDisclaimer?: string;
 }
 
 interface CartItem {
@@ -125,13 +131,18 @@ const PRODUCTS: Product[] = [
     id: 'chlorella-extract',
     name: 'Chlorella',
     description: 'Detox de metales pesados · Sistema inmune · Oxigenación celular',
-    price: 29000,
+    price: 16000,
     capsules: 30,
     mg: 500,
     icon: '🌿',
     category: 'extract',
     color: '#2D6A4F',
-    imagePrompt: 'Scientific illustration of Chlorella microalgae cells, vibrant green, clean style, soft cream background'
+    imagePrompt: 'Scientific illustration of Chlorella microalgae cells, vibrant green, clean style, soft cream background',
+    infoTag: 'Protocolo detox',
+    infoHeadline: 'Protocolo Detox (2 semanas)',
+    infoSubheadline: 'Pausa de adaptógenos durante el protocolo',
+    infoFooter: 'Recomendado cada 3 meses',
+    infoDisclaimer: 'Si tomás otros suplementos, podés consultar con un profesional.'
   }
 ];
 
@@ -246,13 +257,38 @@ function ProductCard({
                 draggable={false}
               />
             </div>
-            <h4 className="font-medium mb-2">{product.name}</h4>
-            <p className="text-xs text-[#2F4F4F]/70 leading-relaxed italic">
+            <h4 className="font-medium text-base mb-2">{product.name}</h4>
+            {product.infoTag && (
+              <p className="text-sm uppercase tracking-widest text-[#2F4F4F]/65 font-sans mb-2">
+                {product.infoTag}
+              </p>
+            )}
+            {product.infoHeadline && (
+              <p className="text-sm font-medium text-[#1a1a1a] mb-1 leading-snug">
+                {product.infoHeadline}
+              </p>
+            )}
+            {product.infoSubheadline && (
+              <p className="text-sm text-[#2F4F4F]/75 leading-relaxed mb-3">
+                {product.infoSubheadline}
+              </p>
+            )}
+            <p className="text-sm text-[#2F4F4F]/70 leading-relaxed italic">
               {product.description}
             </p>
-            <div className="mt-6 text-xs uppercase tracking-widest text-[#2F4F4F]/70 font-sans">
+            <div className="mt-6 text-sm uppercase tracking-widest text-[#2F4F4F]/70 font-sans">
               {product.capsules} caps · {product.mg} mg
             </div>
+            {product.infoFooter && (
+              <p className="mt-4 text-sm text-[#2F4F4F]/70 leading-relaxed">
+                {product.infoFooter}
+              </p>
+            )}
+            {product.infoDisclaimer && (
+              <p className="mt-3 text-xs text-[#2F4F4F]/55 leading-relaxed">
+                {product.infoDisclaimer}
+              </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
