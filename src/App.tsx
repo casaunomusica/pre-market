@@ -533,6 +533,15 @@ function SafetyCheckModal({
   const showPedidoHeading =
     phase !== 'intro' && !pedidoHeadingShownRef.current && stepLabel === 1;
 
+  const confirmPricing = useMemo(() => {
+    const bottles = cart.reduce((a, i) => a + i.quantity, 0);
+    const subtotal = cart.reduce((a, i) => a + i.product.price * i.quantity, 0);
+    const rate = bottles >= 4 ? 0.2 : bottles >= 2 ? 0.1 : 0;
+    const discountAmount = subtotal * rate;
+    const total = subtotal * (1 - rate);
+    return { bottles, subtotal, rate, discountAmount, total };
+  }, [cart]);
+
   const forward = (next: SafetyPhase) => {
     setNavStack(s => [...s, { phase: next, cart: cloneCart(cart) }]);
     setPhase(next);
@@ -1210,14 +1219,42 @@ function SafetyCheckModal({
     <div className="space-y-4 text-left">
       <p className="text-sm font-medium text-[#2F4F4F]">Tu pedido</p>
       <ul className="space-y-2 text-sm text-[#2F4F4F]/80">
-        {cart.map(item => (
-          <li key={item.product.id} className="flex justify-between gap-2">
-            <span>{confirmLineLabel(item.product)}</span>
-            <span className="font-mono shrink-0">×{item.quantity}</span>
-          </li>
-        ))}
+        {cart.map(item => {
+          const line = item.product.price * item.quantity;
+          return (
+            <li key={item.product.id} className="flex justify-between gap-3 items-baseline">
+              <span className="min-w-0 leading-snug">{confirmLineLabel(item.product)}</span>
+              <span className="shrink-0 font-mono tabular-nums text-[#2F4F4F]">
+                {`${item.quantity > 1 ? `×${item.quantity} ` : ''}$${line.toLocaleString('es-AR')}`}
+              </span>
+            </li>
+          );
+        })}
       </ul>
-      <div className="flex flex-col gap-2 pt-2">
+      <div className="space-y-1 border-t border-[#2F4F4F]/10 pt-3 text-[#2F4F4F]">
+        {confirmPricing.rate > 0 ? (
+          <>
+            <div className="flex justify-between gap-2 text-xs text-[#2F4F4F]/55">
+              <span>Subtotal</span>
+              <span className="font-mono tabular-nums">${confirmPricing.subtotal.toLocaleString('es-AR')}</span>
+            </div>
+            <div className="flex justify-between gap-2 text-xs text-[#AB5541]">
+              <span>−{confirmPricing.rate * 100}%</span>
+              <span className="font-mono tabular-nums">−${confirmPricing.discountAmount.toLocaleString('es-AR')}</span>
+            </div>
+            <div className="flex justify-between gap-2 pt-1 text-sm font-medium">
+              <span>Total</span>
+              <span className="font-mono tabular-nums">${confirmPricing.total.toLocaleString('es-AR')}</span>
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-between gap-2 text-sm font-medium">
+            <span>Total</span>
+            <span className="font-mono tabular-nums">${confirmPricing.total.toLocaleString('es-AR')}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-2 pt-1">
         <button
           type="button"
           onClick={onConfirm}
@@ -1237,7 +1274,7 @@ function SafetyCheckModal({
       <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-[32px] bg-[#F0E6D2] p-6 shadow-xl">
         <button
           type="button"
-          onClick={() => (phase === 'intro' ? abortToShopping() : goBackOne())}
+          onClick={abortToShopping}
           className="absolute top-4 right-4 z-20 p-2 hover:bg-[#2F4F4F]/10 rounded-full"
         >
           <X className="w-5 h-5" />
