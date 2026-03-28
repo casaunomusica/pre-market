@@ -1212,47 +1212,52 @@ function SafetyCheckModal({
     );
   };
 
-  const confirmLineLabel = (p: Product) =>
-    p.id === 'melena-extract' ? `${p.name} (extracto 10:1)` : p.name;
+  const confirmLineLabelShort = (p: Product) => {
+    if (p.id === 'melena-extract') return 'Melena 10:1';
+    if (p.id === 'melena-classic') return 'Melena clásica';
+    return p.name;
+  };
 
   const renderConfirm = () => (
     <div className="space-y-4 text-left">
       <p className="text-sm font-medium text-[#2F4F4F]">Tu pedido</p>
-      <ul className="space-y-2 text-sm text-[#2F4F4F]/80">
+      <ul className="space-y-1.5 text-sm text-[#2F4F4F]/85">
         {cart.map(item => {
           const line = item.product.price * item.quantity;
           return (
             <li key={item.product.id} className="flex justify-between gap-3 items-baseline">
-              <span className="min-w-0 leading-snug">{confirmLineLabel(item.product)}</span>
-              <span className="shrink-0 font-mono tabular-nums text-[#2F4F4F]">
-                {`${item.quantity > 1 ? `×${item.quantity} ` : ''}$${line.toLocaleString('es-AR')}`}
+              <span className="min-w-0 leading-snug">{confirmLineLabelShort(item.product)}</span>
+              <span className="shrink-0 tabular-nums text-[#2F4F4F]/75">
+                {`${item.quantity > 1 ? `×${item.quantity} · ` : ''}$${line.toLocaleString('es-AR')}`}
               </span>
             </li>
           );
         })}
       </ul>
-      <div className="space-y-1 border-t border-[#2F4F4F]/10 pt-3 text-[#2F4F4F]">
-        {confirmPricing.rate > 0 ? (
-          <>
-            <div className="flex justify-between gap-2 text-xs text-[#2F4F4F]/55">
-              <span>Subtotal</span>
-              <span className="font-mono tabular-nums">${confirmPricing.subtotal.toLocaleString('es-AR')}</span>
-            </div>
-            <div className="flex justify-between gap-2 text-xs text-[#AB5541]">
-              <span>−{confirmPricing.rate * 100}%</span>
-              <span className="font-mono tabular-nums">−${confirmPricing.discountAmount.toLocaleString('es-AR')}</span>
-            </div>
-            <div className="flex justify-between gap-2 pt-1 text-sm font-medium">
-              <span>Total</span>
-              <span className="font-mono tabular-nums">${confirmPricing.total.toLocaleString('es-AR')}</span>
-            </div>
-          </>
-        ) : (
-          <div className="flex justify-between gap-2 text-sm font-medium">
-            <span>Total</span>
-            <span className="font-mono tabular-nums">${confirmPricing.total.toLocaleString('es-AR')}</span>
+      <div className="flex justify-between gap-4 items-end border-t border-[#2F4F4F]/10 pt-4 text-[#2F4F4F]">
+        <div className="min-w-0">
+          <p className="text-[0.65rem] sm:text-xs font-medium tracking-[0.12em] text-[#2F4F4F]/45 uppercase mb-1">
+            Total estimado
+          </p>
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+            <span className="text-2xl font-semibold tabular-nums leading-none">
+              ${confirmPricing.total.toLocaleString('es-AR')}
+            </span>
+            {confirmPricing.rate > 0 && (
+              <span className="text-sm text-[#2F4F4F]/35 line-through tabular-nums">
+                ${confirmPricing.subtotal.toLocaleString('es-AR')}
+              </span>
+            )}
           </div>
-        )}
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-sm text-[#2F4F4F]/80 leading-tight">
+            {confirmPricing.bottles === 1 ? '1 frasco' : `${confirmPricing.bottles} frascos`}
+          </p>
+          {confirmPricing.rate > 0 && (
+            <p className="text-xs text-[#AB5541] mt-1 leading-tight">−{confirmPricing.rate * 100}% aplicado</p>
+          )}
+        </div>
       </div>
       <div className="flex flex-col gap-2 pt-1">
         <button
@@ -1279,7 +1284,7 @@ function SafetyCheckModal({
         >
           <X className="w-5 h-5" />
         </button>
-        {phase !== 'intro' && (
+        {phase !== 'intro' && phase !== 'confirm' && (
           <p
             className={`text-xs text-[#2F4F4F]/40 ${showPedidoHeading ? 'mb-1' : 'mb-4'}`}
           >
