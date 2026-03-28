@@ -488,11 +488,12 @@ function SafetyCheckModal({
   const firstActivePhase = showChlorellaStep ? ('chlorella' as const) : ('security' as const);
   const [phase, setPhase] = useState<'intro' | 'chlorella' | 'security' | 'melenaFirst' | 'confirm'>('intro');
   const melenaPhaseEnteredRef = useRef(false);
+  const pedidoHeadingShownRef = useRef(false);
   useEffect(() => {
     if (phase === 'melenaFirst') melenaPhaseEnteredRef.current = true;
   }, [phase]);
 
-  const [chlQ60, setChlQ60] = useState<'yes' | 'no' | 'dunno' | null>(null);
+  const [chlQ60, setChlQ60] = useState<'yes' | 'no' | null>(null);
   const [chlDur, setChlDur] = useState<'60-90' | '90+' | null>(null);
   const [swapUndos, setSwapUndos] = useState<SwapUndo[]>([]);
 
@@ -506,7 +507,6 @@ function SafetyCheckModal({
   const [p8, setP8] = useState<boolean | null>(null);
   const [p9, setP9] = useState<boolean | null>(null);
   const [p10First, setP10First] = useState<boolean | null>(null);
-  const [p10MantenerTip, setP10MantenerTip] = useState(false);
 
   const showMelenaPhase = cart.some(i => i.product.id === 'melena-extract');
   const totalSteps =
@@ -519,6 +519,14 @@ function SafetyCheckModal({
         : phase === 'melenaFirst'
           ? 1 + (showChlorellaStep ? 1 : 0) + 1
           : totalSteps;
+
+  useEffect(() => {
+    if (phase === 'intro') return;
+    if (stepLabel > 1) pedidoHeadingShownRef.current = true;
+  }, [phase, stepLabel]);
+
+  const showPedidoHeading =
+    phase !== 'intro' && !pedidoHeadingShownRef.current && stepLabel === 1;
 
   const pushSwapUndo = (id: string, label: string, before: CartItem[]) => {
     setSwapUndos(u => [
@@ -630,13 +638,6 @@ function SafetyCheckModal({
               className="rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm"
             >
               No
-            </button>
-            <button
-              type="button"
-              onClick={() => { setChlQ60('dunno'); goSecurity(); }}
-              className="rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm"
-            >
-              No sé
             </button>
           </div>
         </div>
@@ -1020,31 +1021,10 @@ function SafetyCheckModal({
             >
               Sí
             </button>
-            <button
-              type="button"
-              onClick={() => setP10First(false)}
-              className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm"
-            >
+            <button type="button" onClick={goConfirm} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">
               No
             </button>
           </div>
-        </div>
-      );
-    }
-
-    if (p10First === false) {
-      return (
-        <div className="space-y-4 text-left">
-          <p className="text-xs text-[#2F4F4F]/60 leading-relaxed">
-            Si notás hinchazón o gases, tomalo junto a una comida sólida para mejorar la tolerancia.
-          </p>
-          <button
-            type="button"
-            onClick={goConfirm}
-            className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
-          >
-            Continuar al resumen
-          </button>
         </div>
       );
     }
@@ -1068,41 +1048,27 @@ function SafetyCheckModal({
         <p className="text-sm text-[#2F4F4F]/80 leading-relaxed">
           El extracto 10:1 es de alta potencia — cada cápsula equivale a 5g de hongo crudo. Para una adaptación gradual de la microbiota, la Melena Clásica (hongo entero) ofrece una liberación más progresiva y mejor tolerancia digestiva.
         </p>
-        {!p10MantenerTip && (
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => applySwap('melena-extract', 'melena-classic')}
-              className="w-full rounded-full py-3 bg-[#AB5541] text-white text-sm font-medium"
-            >
-              Cambiar por Melena Clásica
-            </button>
-            <button
-              type="button"
-              onClick={() => setP10MantenerTip(true)}
-              className="w-full rounded-full py-3 border border-[#2F4F4F]/25 text-sm"
-            >
-              Mantener 10:1
-            </button>
-          </div>
-        )}
-        {p10MantenerTip && (
-          <p className="text-xs text-[#2F4F4F]/60 leading-relaxed">
-            Para optimizar la tolerancia, tomalo siempre junto a una comida sólida.
-          </p>
-        )}
-        {(p10MantenerTip || !hasExtract) && (
+        <div className="flex flex-col gap-2">
           <button
             type="button"
-            onClick={goConfirm}
-            className="w-full mt-2 rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+            onClick={() => {
+              applySwap('melena-extract', 'melena-classic');
+              queueMicrotask(() => goConfirm());
+            }}
+            className="w-full rounded-full py-3 bg-[#AB5541] text-white text-sm font-medium"
           >
-            Continuar al resumen
+            Cambiar por Melena Clásica
           </button>
-        )}
+          <button type="button" onClick={goConfirm} className="w-full rounded-full py-3 border border-[#2F4F4F]/25 text-sm">
+            Mantener 10:1
+          </button>
+        </div>
       </div>
     );
   };
+
+  const confirmLineLabel = (p: Product) =>
+    p.id === 'melena-extract' ? `${p.name} (extracto 10:1)` : p.name;
 
   const renderConfirm = () => (
     <div className="space-y-4 text-left">
@@ -1110,7 +1076,7 @@ function SafetyCheckModal({
       <ul className="space-y-2 text-sm text-[#2F4F4F]/80">
         {cart.map(item => (
           <li key={item.product.id} className="flex justify-between gap-2">
-            <span>{item.product.name}</span>
+            <span>{confirmLineLabel(item.product)}</span>
             <span className="font-mono shrink-0">×{item.quantity}</span>
           </li>
         ))}
@@ -1147,9 +1113,13 @@ function SafetyCheckModal({
           <X className="w-5 h-5" />
         </button>
         {phase !== 'intro' && (
-          <p className="text-xs text-[#2F4F4F]/40 mb-1">{stepLabel} de {totalSteps}</p>
+          <p
+            className={`text-xs text-[#2F4F4F]/40 ${showPedidoHeading ? 'mb-1' : 'mb-4'}`}
+          >
+            {stepLabel} de {totalSteps}
+          </p>
         )}
-        {phase !== 'intro' && (
+        {showPedidoHeading && (
           <h2 className="text-base font-medium text-[#2F4F4F] mb-4 pr-8">Antes de enviar el pedido</h2>
         )}
         {phase === 'intro' && renderIntro()}
