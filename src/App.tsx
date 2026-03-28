@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShoppingBag, 
@@ -9,7 +9,8 @@ import {
   X, 
   Info,
   ArrowRight,
-  FlaskConical
+  FlaskConical,
+  Check
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -30,9 +31,12 @@ interface Product {
   mg: number;
   icon: string;
   category: 'extract' | 'classic';
+  kind: 'mushroom' | 'plant' | 'algae';
   color: string;
   imagePrompt: string;
   infoHeadline?: string;
+  adaptationPeriod?: string;
+  considerations?: string;
 }
 
 interface CartItem {
@@ -59,8 +63,11 @@ const PRODUCTS: Product[] = [
     mg: 500,
     icon: '🍄',
     category: 'extract',
+    kind: 'mushroom',
     color: '#8B7D6B', // More saturated mushroom brown
-    imagePrompt: 'Minimalist watercolor botanical illustration of Lion\'s Mane mushroom (Hericium erinaceus), white cascading icicle-like teeth, soft cream background, elegant artistic style, soft edges'
+    imagePrompt: 'Minimalist watercolor botanical illustration of Lion\'s Mane mushroom (Hericium erinaceus), white cascading icicle-like teeth, soft cream background, elegant artistic style, soft edges',
+    adaptationPeriod: 'En las primeras semanas puede aparecer distensión o gases leves, especialmente en personas con microbiota sensible. Tomarlo con alimentos sólidos reduce este efecto.',
+    considerations: 'Puede enlentecer la coagulación: evitar con anticoagulantes (Warfarina, Aspirina) y suspender 14 días antes de cirugía. Sin datos suficientes en embarazo y lactancia.'
   },
   {
     id: 'reishi-extract',
@@ -71,8 +78,11 @@ const PRODUCTS: Product[] = [
     mg: 500,
     icon: '🍄',
     category: 'extract',
+    kind: 'mushroom',
     color: '#7D2D2D', // Deep reddish brown
-    imagePrompt: 'Minimalist watercolor botanical illustration of Reishi mushroom (Ganoderma lucidum), shiny reddish-brown kidney-shaped cap, woody texture, soft beige background, artistic wash'
+    imagePrompt: 'Minimalist watercolor botanical illustration of Reishi mushroom (Ganoderma lucidum), shiny reddish-brown kidney-shaped cap, woody texture, soft beige background, artistic wash',
+    adaptationPeriod: 'Algunos usuarios reportan mareos leves o prurito transitorio en los primeros días. La calma mental y la mejora del descanso suelen aparecer de forma gradual en las primeras dos semanas.',
+    considerations: 'Inhibe enzimas hepáticas (CYP450): puede elevar niveles de estatinas, antihipertensivos y antidepresivos. Evitar con anticoagulantes y alcohol. Suspender 14 días antes de cirugía.'
   },
   {
     id: 'cordyceps-extract',
@@ -83,8 +93,11 @@ const PRODUCTS: Product[] = [
     mg: 500,
     icon: '🍄',
     category: 'extract',
+    kind: 'mushroom',
     color: '#F27D26', // Vibrant orange
-    imagePrompt: 'Minimalist watercolor botanical illustration of Cordyceps sinensis, slender orange club-shaped fungi, elegant line art with soft orange washes, warm background'
+    imagePrompt: 'Minimalist watercolor botanical illustration of Cordyceps sinensis, slender orange club-shaped fungi, elegant line art with soft orange washes, warm background',
+    adaptationPeriod: 'Puede aparecer sequedad bucal leve en las primeras semanas. La vitalidad y resistencia física suelen notarse de forma progresiva.',
+    considerations: 'Puede potenciar hipoglucemiantes (Metformina, insulina) y anticoagulantes. Precaución en enfermedades autoinmunes activas. Suspender 14 días antes de cirugía.'
   },
   {
     id: 'ashwagandha-extract',
@@ -95,8 +108,11 @@ const PRODUCTS: Product[] = [
     mg: 500,
     icon: '🌿',
     category: 'extract',
+    kind: 'plant',
     color: '#D4B483', // Earthy yellow/beige
-    imagePrompt: 'Minimalist watercolor botanical illustration of Ashwagandha plant (Withania somnifera), small green leaves and red berries, delicate roots, soft earthy background, artistic style'
+    imagePrompt: 'Minimalist watercolor botanical illustration of Ashwagandha plant (Withania somnifera), small green leaves and red berries, delicate roots, soft earthy background, artistic style',
+    adaptationPeriod: 'La reducción del estrés y la mejora del sueño suelen sentirse en las primeras dos semanas. La interrupción abrupta tras uso prolongado puede generar ansiedad o insomnio transitorio.',
+    considerations: 'Puede alterar hormonas tiroideas: evitar con medicación tiroidea. Riesgo hepático con paracetamol frecuente o alcohol. Evitar en embarazo. Usamos extracto de raíz, más seguro para el hígado.'
   },
   {
     id: 'tremella-extract',
@@ -107,8 +123,11 @@ const PRODUCTS: Product[] = [
     mg: 500,
     icon: '🍄',
     category: 'extract',
+    kind: 'mushroom',
     color: '#5E9E98', // Darker teal for legibility
-    imagePrompt: 'Minimalist watercolor botanical illustration of Tremella mushroom (Snow fungus), translucent white frilly ruffles, jelly-like texture, soft cool background, delicate washes'
+    imagePrompt: 'Minimalist watercolor botanical illustration of Tremella mushroom (Snow fungus), translucent white frilly ruffles, jelly-like texture, soft cool background, delicate washes',
+    adaptationPeriod: 'Es el adaptógeno de aclimatación más suave del catálogo. Algunos usuarios notan mayor elasticidad en la piel y lubricación articular en las primeras semanas.',
+    considerations: 'Puede potenciar hipoglucemiantes (Metformina, insulina). Posible interacción con estatinas y antidepresivos. Suspender 14 días antes de cirugía.'
   },
   {
     id: 'melena-classic',
@@ -119,8 +138,11 @@ const PRODUCTS: Product[] = [
     mg: 300,
     icon: '🍄',
     category: 'classic',
+    kind: 'mushroom',
     color: '#9E8B85', // Darker muted brown for legibility
-    imagePrompt: 'Minimalist watercolor illustration of ground mushroom powder in a wooden spoon, Melena de León texture, soft neutral background, artistic style'
+    imagePrompt: 'Minimalist watercolor illustration of ground mushroom powder in a wooden spoon, Melena de León texture, soft neutral background, artistic style',
+    adaptationPeriod: 'Al ser hongo entero, la liberación de activos es más gradual y la tolerancia digestiva es significativamente mejor que el extracto. Ideal como punto de entrada.',
+    considerations: 'Mismas precauciones que el extracto pero con perfil de potencia más bajo. Evitar con anticoagulantes y consultar en caso de embarazo o lactancia.'
   },
   {
     id: 'chlorella-extract',
@@ -131,9 +153,12 @@ const PRODUCTS: Product[] = [
     mg: 500,
     icon: '🌿',
     category: 'extract',
+    kind: 'algae',
     color: '#2D6A4F',
     imagePrompt: 'Scientific illustration of Chlorella microalgae cells, vibrant green, clean style, soft cream background',
-    infoHeadline: 'Protocolo Detox · 2 semanas · Cada 3 meses'
+    infoHeadline: 'Protocolo Detox · 2 semanas · Cada 3 meses',
+    adaptationPeriod: 'Puede haber cambios en la frecuencia evacuatoria y gases leves en las primeras semanas por la interacción con la microbiota. Tomar con abundante agua.',
+    considerations: 'Contraindicada en Hashimoto activo e hipertiroidismo de Graves por su contenido de yodo. Si tomás Levotiroxina, separar al menos 4 horas.'
   }
 ];
 
@@ -256,36 +281,57 @@ function ProductCard({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute inset-0 z-10 bg-[#F0E6D2] p-6 flex flex-col items-center justify-center text-center"
+            className="absolute inset-0 z-10 bg-[#F0E6D2] flex flex-col min-h-0"
           >
             <button 
               onClick={() => setShowInfo(false)}
-              className="absolute top-4 right-4 p-2 hover:bg-[#2F4F4F]/10 rounded-full"
+              className="absolute top-4 right-4 z-20 shrink-0 p-2 hover:bg-[#2F4F4F]/10 rounded-full"
             >
               <X className="w-5 h-5" />
             </button>
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl mb-4"
-              style={{ backgroundColor: product.color + '20' }}
-            >
-              <img
-                src={`/product-icons/${product.id}.png`}
-                alt={product.name}
-                className="w-[70%] h-[70%] object-contain select-none pointer-events-none"
-                draggable={false}
-              />
-            </div>
-            <h4 className="font-medium text-base mb-2">{product.name}</h4>
-            {product.infoHeadline && (
-              <p className="text-sm font-medium text-[#1a1a1a] mb-3 leading-snug">
-                {product.infoHeadline}
-              </p>
-            )}
-            <p className="text-sm text-[#2F4F4F]/70 leading-relaxed italic">
-              {product.description}
-            </p>
-            <div className="mt-6 text-sm uppercase tracking-widest text-[#2F4F4F]/70 font-sans">
-              {product.capsules} caps · {product.mg} mg {product.id === 'chlorella-extract' && '· 2 cáps por día'}
+            <div className="flex-1 overflow-y-auto overscroll-contain min-h-0 pt-14 pb-6 px-6">
+              <div className="flex flex-col items-center text-center w-full">
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-2xl mb-4"
+                  style={{ backgroundColor: product.color + '20' }}
+                >
+                  <img
+                    src={`/product-icons/${product.id}.png`}
+                    alt={product.name}
+                    className="w-[70%] h-[70%] object-contain select-none pointer-events-none"
+                    draggable={false}
+                  />
+                </div>
+                <h4 className="font-medium text-base mb-2">{product.name}</h4>
+                {product.infoHeadline && (
+                  <p className="text-sm font-medium text-[#1a1a1a] mb-3 leading-snug">
+                    {product.infoHeadline}
+                  </p>
+                )}
+                <p className="text-sm text-[#2F4F4F]/70 leading-relaxed italic">
+                  {product.description}
+                </p>
+              </div>
+              {product.adaptationPeriod && (
+                <div className="mt-4 text-left w-full">
+                  <p className="text-xs uppercase tracking-widest text-[#2F4F4F]/70 font-sans mb-1">
+                    Período de adaptación
+                  </p>
+                  <p className="text-sm text-[#2F4F4F]/70 leading-relaxed">
+                    {product.adaptationPeriod}
+                  </p>
+                </div>
+              )}
+              {product.considerations && (
+                <div className="mt-3 text-left w-full">
+                  <p className="text-xs uppercase tracking-widest text-[#2F4F4F]/70 font-sans mb-1">
+                    Consideraciones
+                  </p>
+                  <p className="text-sm text-[#2F4F4F]/70 leading-relaxed">
+                    {product.considerations}
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -351,8 +397,775 @@ function ProductCard({
   );
 }
 
+const IDS_ANTICOAG = ['reishi-extract', 'cordyceps-extract', 'melena-extract', 'melena-classic', 'tremella-extract'] as const;
+const IDS_SURGERY = IDS_ANTICOAG;
+const IDS_DIABETES = ['tremella-extract', 'cordyceps-extract', 'melena-extract', 'melena-classic'] as const;
+
+function cartHasAnyId(cart: CartItem[], ids: readonly string[]): boolean {
+  return cart.some(i => ids.includes(i.product.id));
+}
+
+function cloneCart(cart: CartItem[]): CartItem[] {
+  return cart.map(item => ({ ...item, product: item.product }));
+}
+
+function swapProductInCart(cart: CartItem[], fromId: string, toProduct: Product): CartItem[] {
+  const idx = cart.findIndex(i => i.product.id === fromId);
+  if (idx === -1) return cart;
+  const qty = cart[idx].quantity;
+  let next = cart.filter(i => i.product.id !== fromId);
+  const existing = next.find(i => i.product.id === toProduct.id);
+  if (existing) {
+    next = next.map(i =>
+      i.product.id === toProduct.id ? { ...i, quantity: i.quantity + qty } : i
+    );
+  } else {
+    next = [...next, { product: toProduct, quantity: qty }];
+  }
+  return next;
+}
+
+/** Quita todos los ids anticoag del carrito y suma cantidades en un único Ashwagandha. */
+function swapAllAnticoagToAshwagandha(
+  cart: CartItem[],
+  anticoagIds: readonly string[],
+  ashwagandha: Product
+): CartItem[] {
+  let qtySum = 0;
+  let next = cart.filter(item => {
+    if (!anticoagIds.includes(item.product.id)) return true;
+    qtySum += item.quantity;
+    return false;
+  });
+  if (qtySum === 0) return cart;
+  const existing = next.find(i => i.product.id === 'ashwagandha-extract');
+  if (existing) {
+    next = next.map(i =>
+      i.product.id === 'ashwagandha-extract'
+        ? { ...i, quantity: i.quantity + qtySum }
+        : i
+    );
+  } else {
+    next = [...next, { product: ashwagandha, quantity: qtySum }];
+  }
+  return next;
+}
+
+function anticoagWarningForId(id: string): string {
+  switch (id) {
+    case 'reishi-extract':
+      return 'El Reishi puede potenciar el efecto anticoagulante y aumentar el riesgo de sangrado.';
+    case 'cordyceps-extract':
+      return 'El Cordyceps puede potenciar el efecto anticoagulante y aumentar el riesgo de sangrado.';
+    case 'melena-extract':
+    case 'melena-classic':
+      return 'La Melena de León puede enlentecer la coagulación.';
+    case 'tremella-extract':
+      return 'La Tremella puede afectar la hemodinámica y el riesgo de sangrado.';
+    default:
+      return '';
+  }
+}
+
+type SwapUndo = { id: string; label: string; undo: () => void };
+
+function SafetyCheckModal({
+  cart,
+  products,
+  setCart,
+  onConfirm,
+  onClose,
+}: {
+  cart: CartItem[];
+  products: Product[];
+  setCart: Dispatch<SetStateAction<CartItem[]>>;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
+
+  const [showChlorellaStep] = useState(() => cart.some(i => i.product.kind !== 'algae'));
+  const firstActivePhase = showChlorellaStep ? ('chlorella' as const) : ('security' as const);
+  const [phase, setPhase] = useState<'intro' | 'chlorella' | 'security' | 'melenaFirst' | 'confirm'>('intro');
+  const melenaPhaseEnteredRef = useRef(false);
+  useEffect(() => {
+    if (phase === 'melenaFirst') melenaPhaseEnteredRef.current = true;
+  }, [phase]);
+
+  const [chlQ60, setChlQ60] = useState<'yes' | 'no' | 'dunno' | null>(null);
+  const [chlDur, setChlDur] = useState<'60-90' | '90+' | null>(null);
+  const [swapUndos, setSwapUndos] = useState<SwapUndo[]>([]);
+
+  const [p1, setP1] = useState<boolean | null>(null);
+  const [p2, setP2] = useState<boolean | null>(null);
+  const [p3, setP3] = useState<boolean | null>(null);
+  const [p4, setP4] = useState<boolean | null>(null);
+  const [p5, setP5] = useState<'hashimoto' | 'graves' | 'levo' | 'no' | null>(null);
+  const [p6, setP6] = useState<boolean | null>(null);
+  const [p7, setP7] = useState<boolean | null>(null);
+  const [p8, setP8] = useState<boolean | null>(null);
+  const [p9, setP9] = useState<boolean | null>(null);
+  const [p10First, setP10First] = useState<boolean | null>(null);
+  const [p10MantenerTip, setP10MantenerTip] = useState(false);
+
+  const showMelenaPhase = cart.some(i => i.product.id === 'melena-extract');
+  const totalSteps =
+    (showChlorellaStep ? 1 : 0) + 1 + (showMelenaPhase ? 1 : 0) + 1;
+  const stepLabel =
+    phase === 'chlorella'
+      ? 1
+      : phase === 'security'
+        ? 1 + (showChlorellaStep ? 1 : 0)
+        : phase === 'melenaFirst'
+          ? 1 + (showChlorellaStep ? 1 : 0) + 1
+          : totalSteps;
+
+  const pushSwapUndo = (id: string, label: string, before: CartItem[]) => {
+    setSwapUndos(u => [
+      ...u,
+      {
+        id,
+        label,
+        undo: () => {
+          setCart(before);
+          setSwapUndos(s => s.filter(x => x.id !== id));
+        },
+      },
+    ]);
+  };
+
+  const applySwap = (fromId: string, toId: string) => {
+    const toProduct = productById.get(toId);
+    if (!toProduct) return;
+    setCart(prev => {
+      const before = cloneCart(prev);
+      const after = swapProductInCart(prev, fromId, toProduct);
+      const fromName = productById.get(fromId)?.name ?? fromId;
+      const id = `swap-${fromId}-${Date.now()}`;
+      queueMicrotask(() => pushSwapUndo(id, `${fromName} → ${toProduct.name}`, before));
+      return after;
+    });
+  };
+
+  const applySwapAllAnticoagToAshwagandha = () => {
+    const ash = productById.get('ashwagandha-extract');
+    if (!ash) return;
+    setCart(prev => {
+      const before = cloneCart(prev);
+      const after = swapAllAnticoagToAshwagandha(prev, IDS_ANTICOAG, ash);
+      const id = `swap-anticoag-all-${Date.now()}`;
+      queueMicrotask(() =>
+        pushSwapUndo(id, 'Productos anticoag → Ashwagandha', before)
+      );
+      return after;
+    });
+  };
+
+  const addChlorellaOnce = () => {
+    const ch = productById.get('chlorella-extract');
+    if (!ch) return;
+    setCart(prev => {
+      if (prev.some(i => i.product.id === 'chlorella-extract')) return prev;
+      const before = cloneCart(prev);
+      const id = `chl-add-${Date.now()}`;
+      queueMicrotask(() => pushSwapUndo(id, '+ Chlorella (×1)', before));
+      return [...prev, { product: ch, quantity: 1 }];
+    });
+  };
+
+  const hasChlorellaInCart = cart.some(i => i.product.id === 'chlorella-extract');
+
+  const goSecurity = () => setPhase('security');
+  const goConfirm = () => setPhase('confirm');
+  const goFromSecurity = () => {
+    if (cart.some(i => i.product.id === 'melena-extract')) setPhase('melenaFirst');
+    else setPhase('confirm');
+  };
+
+  const renderIntro = () => (
+    <div className="flex flex-col justify-center items-center min-h-[min(320px,45vh)] py-6">
+      <p className="text-base font-medium text-[#2F4F4F] text-center leading-snug">
+        ¿Querés hacer una compra informada?
+      </p>
+      <p className="text-sm text-[#2F4F4F]/60 text-center mt-2">
+        Revisá si lo que elegiste es adecuado para vos.
+      </p>
+      <div className="flex flex-col gap-3 mt-8 w-full">
+        <button
+          type="button"
+          onClick={() => setPhase(firstActivePhase)}
+          className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+        >
+          Sí
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm"
+        >
+          Ir directo
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderChlorella = () => {
+    if (chlQ60 === null) {
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-[#2F4F4F]/90 leading-relaxed">
+            ¿Estás tomando adaptógenos de forma continua hace 60 días o más?
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setChlQ60('yes')}
+              className="rounded-full py-3 px-4 bg-[#2F4F4F] text-white text-sm font-medium"
+            >
+              Sí
+            </button>
+            <button
+              type="button"
+              onClick={() => { setChlQ60('no'); goSecurity(); }}
+              className="rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm"
+            >
+              No
+            </button>
+            <button
+              type="button"
+              onClick={() => { setChlQ60('dunno'); goSecurity(); }}
+              className="rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm"
+            >
+              No sé
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (chlQ60 === 'yes' && chlDur === null) {
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-[#2F4F4F]/90 leading-relaxed">
+            ¿Hace cuánto tiempo aproximadamente?
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setChlDur('60-90')}
+              className="rounded-full py-3 px-4 bg-[#2F4F4F] text-white text-sm font-medium"
+            >
+              Entre 60 y 90 días
+            </button>
+            <button
+              type="button"
+              onClick={() => setChlDur('90+')}
+              className="rounded-full py-3 px-4 bg-[#2F4F4F] text-white text-sm font-medium"
+            >
+              Más de 90 días
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (chlQ60 === 'yes' && chlDur === '60-90') {
+      return (
+        <div className="space-y-4 text-left">
+          <p className="text-sm text-[#2F4F4F]/80 leading-relaxed">
+            Estás cerca de completar un ciclo. Al terminar este mes, dos semanas de Chlorella (2 cápsulas por día) te permiten hacer un reset antes del próximo ciclo.
+          </p>
+          {!hasChlorellaInCart && (
+            <button
+              type="button"
+              onClick={addChlorellaOnce}
+              className="w-full rounded-full py-3 px-4 bg-[#AB5541] text-white text-sm font-medium"
+            >
+              + Agregar Chlorella al pedido
+            </button>
+          )}
+          <button type="button" onClick={goSecurity} className="w-full rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm">
+            Continuar
+          </button>
+        </div>
+      );
+    }
+    if (chlQ60 === 'yes' && chlDur === '90+') {
+      return (
+        <div className="space-y-4 text-left">
+          <p className="text-sm text-[#2F4F4F]/80 leading-relaxed">
+            Llevas un ciclo largo. Lo ideal es empezar por el reset: dos semanas de Chlorella (2 cápsulas por día) antes de arrancar con los adaptógenos.
+          </p>
+          {!hasChlorellaInCart && (
+            <button
+              type="button"
+              onClick={addChlorellaOnce}
+              className="w-full rounded-full py-3 px-4 bg-[#AB5541] text-white text-sm font-medium"
+            >
+              + Agregar Chlorella al pedido
+            </button>
+          )}
+          <button type="button" onClick={goSecurity} className="w-full rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm">
+            Continuar
+          </button>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderSecurity = () => (
+    <div className="space-y-8 text-left">
+      {cartHasAnyId(cart, IDS_ANTICOAG) && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">
+            ¿Estás tomando anticoagulantes o antiagregantes? (Warfarina, Apixaban, Aspirina u otros)
+          </p>
+          {p1 === null && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setP1(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">Sí</button>
+              <button type="button" onClick={() => setP1(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">No</button>
+            </div>
+          )}
+          {p1 === false && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" strokeWidth={2} />
+              <span className="text-sm">Listo</span>
+            </div>
+          )}
+          {p1 === true && (
+            <div className="space-y-3 pl-0 border-l-2 border-[#2F4F4F]/10 pl-3">
+              {cart
+                .filter(i => IDS_ANTICOAG.includes(i.product.id as typeof IDS_ANTICOAG[number]))
+                .map(item => (
+                  <p key={item.product.id} className="text-xs text-[#2F4F4F]/75">
+                    {anticoagWarningForId(item.product.id)}
+                  </p>
+                ))}
+              {!cart.some(i => i.product.id === 'ashwagandha-extract') && (
+                <button
+                  type="button"
+                  onClick={applySwapAllAnticoagToAshwagandha}
+                  className="text-sm rounded-full py-2 px-3 bg-white border border-[#2F4F4F]/20 w-full"
+                >
+                  Reemplazar por Ashwagandha
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {cartHasAnyId(cart, IDS_SURGERY) && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">¿Tenés una cirugía programada en los próximos 15 días?</p>
+          {p2 === null && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setP2(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">Sí</button>
+              <button type="button" onClick={() => setP2(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">No</button>
+            </div>
+          )}
+          {p2 === false && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" /><span className="text-sm">Listo</span>
+            </div>
+          )}
+          {p2 === true && (
+            <p className="text-xs text-[#2F4F4F]/75 leading-relaxed">
+              Se recomienda suspender {cart.filter(i => IDS_SURGERY.includes(i.product.id as typeof IDS_SURGERY[number])).map(i => i.product.name).join(', ')} al menos 14 días antes de una cirugía por riesgo de sangrado. Consultá con tu médico.
+            </p>
+          )}
+        </div>
+      )}
+
+      {cartHasAnyId(cart, IDS_DIABETES) && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">¿Estás tomando medicación para la diabetes? (Metformina, insulina u otros)</p>
+          {p3 === null && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setP3(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">Sí</button>
+              <button type="button" onClick={() => setP3(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">No</button>
+            </div>
+          )}
+          {p3 === false && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" /><span className="text-sm">Listo</span>
+            </div>
+          )}
+          {p3 === true && (
+            <p className="text-xs text-[#2F4F4F]/75 leading-relaxed">
+              {(() => {
+                const names = cart
+                  .filter(i => IDS_DIABETES.includes(i.product.id as typeof IDS_DIABETES[number]))
+                  .map(i => i.product.name);
+                if (names.length === 1) {
+                  return `El ${names[0]} puede potenciar el efecto hipoglucemiante. Monitorear glucosa las primeras semanas y consultar con tu médico.`;
+                }
+                if (names.length === 2) {
+                  return `Los productos ${names[0]} y ${names[1]} pueden potenciar el efecto hipoglucemiante. Monitorear glucosa las primeras semanas y consultar con tu médico.`;
+                }
+                const joined = `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
+                return `Los productos ${joined} pueden potenciar el efecto hipoglucemiante. Monitorear glucosa las primeras semanas y consultar con tu médico.`;
+              })()}
+            </p>
+          )}
+        </div>
+      )}
+
+      {cartHasAnyId(cart, ['ashwagandha-extract']) && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">¿Tenés hipertiroidismo o estás tomando medicación tiroidea? (Levotiroxina u otros)</p>
+          {p4 === null && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setP4(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">Sí</button>
+              <button type="button" onClick={() => setP4(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">No</button>
+            </div>
+          )}
+          {p4 === false && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" /><span className="text-sm">Listo</span>
+            </div>
+          )}
+          {p4 === true && (
+            <div className="space-y-2">
+              <p className="text-xs text-[#2F4F4F]/75">La Ashwagandha puede alterar los niveles de TSH y potenciar la medicación tiroidea.</p>
+              <button type="button" onClick={() => applySwap('ashwagandha-extract', 'reishi-extract')} className="text-sm rounded-full py-2 px-3 bg-white border border-[#2F4F4F]/20 w-full">
+                Reemplazar por Reishi
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {cartHasAnyId(cart, ['chlorella-extract']) && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">¿Tenés Hashimoto, hipertiroidismo de Graves, o tomás Levotiroxina?</p>
+          {p5 === null && (
+            <div className="grid grid-cols-2 gap-2">
+              {(['hashimoto', 'graves', 'levo', 'no'] as const).map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setP5(opt)}
+                  className="rounded-full py-2 text-xs border border-[#2F4F4F]/25"
+                >
+                  {opt === 'hashimoto' ? 'Hashimoto' : opt === 'graves' ? 'Graves' : opt === 'levo' ? 'Levotiroxina' : 'No'}
+                </button>
+              ))}
+            </div>
+          )}
+          {p5 === 'no' && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" /><span className="text-sm">Listo</span>
+            </div>
+          )}
+          {(p5 === 'hashimoto' || p5 === 'graves') && (
+            <div className="space-y-2 text-xs text-[#2F4F4F]/75 leading-relaxed">
+              <p>La Chlorella contiene yodo concentrado y puede exacerbar el ataque autoinmune a la tiroides. No se recomienda en estos casos.</p>
+              <p>Como alternativa suave de reset: batidos de vegetales de hoja verde.</p>
+            </div>
+          )}
+          {p5 === 'levo' && (
+            <p className="text-xs text-[#2F4F4F]/75 leading-relaxed">
+              Separá la Chlorella al menos 4 horas de tu medicación para no interferir con su absorción.
+            </p>
+          )}
+        </div>
+      )}
+
+      {(cartHasAnyId(cart, ['ashwagandha-extract']) || cartHasAnyId(cart, ['reishi-extract'])) && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">¿Tenés enfermedad hepática preexistente o tomás paracetamol frecuentemente?</p>
+          {p6 === null && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setP6(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">Sí</button>
+              <button type="button" onClick={() => setP6(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">No</button>
+            </div>
+          )}
+          {p6 === false && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" /><span className="text-sm">Listo</span>
+            </div>
+          )}
+          {p6 === true && (
+            <div className="space-y-3">
+              {cartHasAnyId(cart, ['ashwagandha-extract']) && (
+                <div className="space-y-2">
+                  <p className="text-xs text-[#2F4F4F]/75">
+                    La Ashwagandha puede afectar las enzimas hepáticas en combinación con paracetamol o alcohol.
+                  </p>
+                  <button type="button" onClick={() => applySwap('ashwagandha-extract', 'melena-extract')} className="text-sm rounded-full py-2 px-3 bg-white border border-[#2F4F4F]/20 w-full">
+                    Reemplazar por Melena de León
+                  </button>
+                </div>
+              )}
+              {cartHasAnyId(cart, ['reishi-extract']) && (
+                <p className="text-xs text-[#2F4F4F]/75">El Reishi inhibe enzimas hepáticas (CYP450). Evitar con paracetamol o alcohol.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <p className="text-sm text-[#2F4F4F]/90 leading-snug">¿Estás embarazada o en período de lactancia?</p>
+        {p7 === null && (
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setP7(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">Sí</button>
+            <button type="button" onClick={() => setP7(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">No</button>
+          </div>
+        )}
+        {p7 === false && (
+          <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+            <Check className="w-4 h-4" /><span className="text-sm">Listo</span>
+          </div>
+        )}
+        {p7 === true && (
+          <p className="text-xs text-[#2F4F4F]/75 leading-relaxed">
+            No contamos con datos clínicos suficientes sobre el uso de adaptógenos durante el embarazo o la lactancia. Consultá con tu médico antes de continuar.
+          </p>
+        )}
+      </div>
+
+      {cart.some(i => i.product.kind === 'mushroom') && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">¿Tenés una enfermedad autoinmune activa? (Lupus, Artritis Reumatoide, Esclerosis Múltiple u otras)</p>
+          {p8 === null && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setP8(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">Sí</button>
+              <button type="button" onClick={() => setP8(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">No</button>
+            </div>
+          )}
+          {p8 === false && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" /><span className="text-sm">Listo</span>
+            </div>
+          )}
+          {p8 === true && (
+            <p className="text-xs text-[#2F4F4F]/75 leading-relaxed">
+              Los hongos medicinales contienen β-glucanos que pueden estimular la actividad de los macrófagos y linfocitos T, lo que podría exacerbar síntomas en condiciones autoinmunes activas. Consultá con tu médico.
+            </p>
+          )}
+        </div>
+      )}
+
+      {cart.some(i => i.product.kind === 'mushroom') && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">¿Tenés alergia conocida a los hongos?</p>
+          {p9 === null && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setP9(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">Sí</button>
+              <button type="button" onClick={() => setP9(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">No</button>
+            </div>
+          )}
+          {p9 === false && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" /><span className="text-sm">Listo</span>
+            </div>
+          )}
+          {p9 === true && (
+            <p className="text-xs text-[#2F4F4F]/75 leading-relaxed">Los hongos en tu pedido pueden generar reacción alérgica.</p>
+          )}
+        </div>
+      )}
+
+      {swapUndos.length > 0 && (
+        <div className="space-y-2 border-t border-[#2F4F4F]/10 pt-4">
+          {swapUndos.map(u => (
+            <div key={u.id} className="flex justify-between items-center gap-2 text-xs">
+              <span className="text-[#2F4F4F]/55">{u.label}</span>
+              <button type="button" className="text-[#2F4F4F]/45 underline shrink-0" onClick={u.undo}>
+                Deshacer
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={goFromSecurity}
+        className="w-full mt-4 rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+      >
+        Continuar
+      </button>
+    </div>
+  );
+
+  const renderMelenaFirst = () => {
+    const hasExtract = cart.some(i => i.product.id === 'melena-extract');
+
+    if (p10First === null) {
+      if (!hasExtract) {
+        return (
+          <div className="space-y-4 text-left">
+            <button
+              type="button"
+              onClick={goConfirm}
+              className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+            >
+              Continuar al resumen
+            </button>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-4 text-left">
+          <p className="text-sm text-[#2F4F4F]/90 leading-relaxed">
+            ¿Es la primera vez que consumís Melena de León?
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setP10First(true)}
+              className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm"
+            >
+              Sí
+            </button>
+            <button
+              type="button"
+              onClick={() => setP10First(false)}
+              className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm"
+            >
+              No
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (p10First === false) {
+      return (
+        <div className="space-y-4 text-left">
+          <p className="text-xs text-[#2F4F4F]/60 leading-relaxed">
+            Si notás hinchazón o gases, tomalo junto a una comida sólida para mejorar la tolerancia.
+          </p>
+          <button
+            type="button"
+            onClick={goConfirm}
+            className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+          >
+            Continuar al resumen
+          </button>
+        </div>
+      );
+    }
+
+    if (!hasExtract) {
+      return (
+        <div className="space-y-4 text-left">
+          <button
+            type="button"
+            onClick={goConfirm}
+            className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+          >
+            Continuar al resumen
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4 text-left">
+        <p className="text-sm text-[#2F4F4F]/80 leading-relaxed">
+          El extracto 10:1 es de alta potencia — cada cápsula equivale a 5g de hongo crudo. Para una adaptación gradual de la microbiota, la Melena Clásica (hongo entero) ofrece una liberación más progresiva y mejor tolerancia digestiva.
+        </p>
+        {!p10MantenerTip && (
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => applySwap('melena-extract', 'melena-classic')}
+              className="w-full rounded-full py-3 bg-[#AB5541] text-white text-sm font-medium"
+            >
+              Cambiar por Melena Clásica
+            </button>
+            <button
+              type="button"
+              onClick={() => setP10MantenerTip(true)}
+              className="w-full rounded-full py-3 border border-[#2F4F4F]/25 text-sm"
+            >
+              Mantener 10:1
+            </button>
+          </div>
+        )}
+        {p10MantenerTip && (
+          <p className="text-xs text-[#2F4F4F]/60 leading-relaxed">
+            Para optimizar la tolerancia, tomalo siempre junto a una comida sólida.
+          </p>
+        )}
+        {(p10MantenerTip || !hasExtract) && (
+          <button
+            type="button"
+            onClick={goConfirm}
+            className="w-full mt-2 rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+          >
+            Continuar al resumen
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const renderConfirm = () => (
+    <div className="space-y-4 text-left">
+      <p className="text-sm font-medium text-[#2F4F4F]">Tu pedido</p>
+      <ul className="space-y-2 text-sm text-[#2F4F4F]/80">
+        {cart.map(item => (
+          <li key={item.product.id} className="flex justify-between gap-2">
+            <span>{item.product.name}</span>
+            <span className="font-mono shrink-0">×{item.quantity}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-col gap-2 pt-2">
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+        >
+          Confirmar pedido
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            melenaPhaseEnteredRef.current ? setPhase('melenaFirst') : setPhase('security')
+          }
+          className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm"
+        >
+          Volver
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1a1a1a]/40">
+      <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-[32px] bg-[#F0E6D2] p-6 shadow-xl">
+        <button
+          type="button"
+          onClick={phase === 'intro' ? onConfirm : onClose}
+          className="absolute top-4 right-4 z-20 p-2 hover:bg-[#2F4F4F]/10 rounded-full"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        {phase !== 'intro' && (
+          <p className="text-xs text-[#2F4F4F]/40 mb-1">{stepLabel} de {totalSteps}</p>
+        )}
+        {phase !== 'intro' && (
+          <h2 className="text-base font-medium text-[#2F4F4F] mb-4 pr-8">Antes de enviar el pedido</h2>
+        )}
+        {phase === 'intro' && renderIntro()}
+        {phase === 'chlorella' && showChlorellaStep && renderChlorella()}
+        {phase === 'security' && renderSecurity()}
+        {phase === 'melenaFirst' && renderMelenaFirst()}
+        {phase === 'confirm' && renderConfirm()}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [showSafetyCheck, setShowSafetyCheck] = useState(false);
+  const [pendingWhatsApp, setPendingWhatsApp] = useState<{ toSeller: boolean } | null>(null);
   const [isSecretMarketOpen, setIsSecretMarketOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showProtocolInfo, setShowProtocolInfo] = useState(false);
@@ -583,6 +1396,22 @@ export default function App() {
     window.open(url, '_blank');
   };
 
+  const openSafetyCheck = (toSeller: boolean) => {
+    setPendingWhatsApp({ toSeller });
+    setShowSafetyCheck(true);
+  };
+
+  const closeSafetyCheck = () => {
+    setShowSafetyCheck(false);
+    setPendingWhatsApp(null);
+  };
+
+  const confirmSafetyAndWhatsApp = () => {
+    if (!pendingWhatsApp) return;
+    handleWhatsApp(pendingWhatsApp.toSeller);
+    closeSafetyCheck();
+  };
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -735,14 +1564,14 @@ export default function App() {
               
               <div className="grid grid-cols-2 gap-3">
                 <button 
-                  onClick={() => handleWhatsApp(true)}
+                  onClick={() => openSafetyCheck(true)}
                   className="flex items-center justify-center gap-2 bg-[#2F4F4F] text-white rounded-full py-4 px-6 hover:bg-[#244040] transition-colors font-sans text-sm font-medium"
                 >
                   <MessageCircle className="w-4 h-4" />
                   Consultar Stock
                 </button>
                 <button 
-                  onClick={() => handleWhatsApp(false)}
+                  onClick={() => openSafetyCheck(false)}
                   className="flex items-center justify-center gap-2 border border-[#2F4F4F]/20 rounded-full py-4 px-6 hover:bg-[#2F4F4F]/10 transition-colors font-sans text-sm font-medium"
                 >
                   Guardar en WhatsApp
@@ -752,6 +1581,16 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {showSafetyCheck && pendingWhatsApp && (
+        <SafetyCheckModal
+          cart={cart}
+          products={PRODUCTS}
+          setCart={setCart}
+          onConfirm={confirmSafetyAndWhatsApp}
+          onClose={closeSafetyCheck}
+        />
+      )}
 
       {/* Secret Market Modal */}
       <AnimatePresence>
@@ -1118,21 +1957,13 @@ export default function App() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => handleWhatsApp(true, true)}
-                    className="flex items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-full py-4 px-6 hover:bg-[#333] transition-colors font-sans text-sm font-medium"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    Consultar Stock
-                  </button>
-                  <button 
-                    onClick={() => handleWhatsApp(false, true)}
-                    className="flex items-center justify-center gap-2 border border-[#1a1a1a]/20 rounded-full py-4 px-6 hover:bg-[#1a1a1a]/5 transition-colors font-sans text-sm font-medium"
-                  >
-                    Guardar en WhatsApp
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleWhatsApp(false, true)}
+                  className="w-full flex items-center justify-center gap-2 border border-[#1a1a1a]/20 rounded-full py-4 px-6 hover:bg-[#1a1a1a]/5 transition-colors font-sans text-sm font-medium"
+                >
+                  Guardar en WhatsApp
+                </button>
               </div>
             </div>
           </motion.div>
