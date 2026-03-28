@@ -471,6 +471,8 @@ type SwapUndo = { id: string; label: string; undo: () => void };
 
 type SafetyPhase = 'intro' | 'chlorella' | 'security' | 'melenaFirst' | 'confirm';
 
+type NavFrame = { phase: SafetyPhase; cart: CartItem[] };
+
 function SafetyCheckModal({
   cart,
   products,
@@ -489,7 +491,11 @@ function SafetyCheckModal({
   const [showChlorellaStep] = useState(() => cart.some(i => i.product.kind !== 'algae'));
   const firstActivePhase = showChlorellaStep ? ('chlorella' as const) : ('security' as const);
   const [phase, setPhase] = useState<SafetyPhase>('intro');
-  const [navStack, setNavStack] = useState<SafetyPhase[]>(['intro']);
+  const [navStack, setNavStack] = useState<NavFrame[]>(() => [{ phase: 'intro', cart: cloneCart(cart) }]);
+  const cartAtOpenRef = useRef<CartItem[] | null>(null);
+  if (cartAtOpenRef.current === null) {
+    cartAtOpenRef.current = cloneCart(cart);
+  }
   const pedidoHeadingShownRef = useRef(false);
 
   const [chlQ60, setChlQ60] = useState<'yes' | 'no' | null>(null);
@@ -528,7 +534,7 @@ function SafetyCheckModal({
     phase !== 'intro' && !pedidoHeadingShownRef.current && stepLabel === 1;
 
   const forward = (next: SafetyPhase) => {
-    setNavStack(s => [...s, next]);
+    setNavStack(s => [...s, { phase: next, cart: cloneCart(cart) }]);
     setPhase(next);
   };
 
@@ -537,19 +543,40 @@ function SafetyCheckModal({
       if (s.length <= 1) return s;
       const nextStack = s.slice(0, -1);
       const prev = nextStack[nextStack.length - 1];
-      setPhase(prev);
+      queueMicrotask(() => {
+        setPhase(prev.phase);
+        setCart(cloneCart(prev.cart));
+        setSwapUndos([]);
+        if (prev.phase === 'intro' || prev.phase === 'chlorella') {
+          setChlQ60(null);
+          setChlDur(null);
+        }
+        if (prev.phase === 'security') {
+          setP10First(null);
+          setP1(null);
+          setP2(null);
+          setP3(null);
+          setP4(null);
+          setP5(null);
+          setP6(null);
+          setP7(null);
+          setP8(null);
+          setP9(null);
+        }
+      });
       return nextStack;
     });
   };
 
-  const leaveChlorellaToSecurity = () => {
+  const leaveChlorellaToSecurity = (explicitCart?: CartItem[]) => {
+    const c = explicitCart ?? cart;
     setNavStack(s => {
-      if (s.length === 0) return ['intro'];
+      if (s.length === 0) return [{ phase: 'intro', cart: cloneCart(c) }];
       const last = s[s.length - 1];
-      if (last === 'chlorella') {
-        return [...s.slice(0, -1), 'security'];
+      if (last.phase === 'chlorella') {
+        return [...s.slice(0, -1), { phase: 'security', cart: cloneCart(c) }];
       }
-      return [...s, 'security'];
+      return [...s, { phase: 'security', cart: cloneCart(c) }];
     });
     setPhase('security');
   };
@@ -613,6 +640,26 @@ function SafetyCheckModal({
     });
   };
 
+  /** Agrega Chlorella y pasa a seguridad en un mismo paso (sin repetir el texto del ciclo). */
+  const addChlorellaAndGoToSecurity = () => {
+    const ch = productById.get('chlorella-extract');
+    if (!ch) return;
+    setCart(prev => {
+      if (prev.some(i => i.product.id === 'chlorella-extract')) {
+        queueMicrotask(() => leaveChlorellaToSecurity());
+        return prev;
+      }
+      const before = cloneCart(prev);
+      const next = [...prev, { product: ch, quantity: 1 }];
+      const id = `chl-add-${Date.now()}`;
+      queueMicrotask(() => {
+        pushSwapUndo(id, '+ Chlorella (×1)', before);
+        leaveChlorellaToSecurity(next);
+      });
+      return next;
+    });
+  };
+
   const hasChlorellaInCart = cart.some(i => i.product.id === 'chlorella-extract');
 
   const goSecurity = () => leaveChlorellaToSecurity();
@@ -622,19 +669,11 @@ function SafetyCheckModal({
     else forward('confirm');
   };
 
-  /** Deshace el swap P10 melena extract → clásica para poder volver a la pantalla de elección 10:1. */
-  const tryUndoMelenaClassicToExtractP10 = (): boolean => {
-    if (p10First !== true) return false;
-    if (cart.some(i => i.product.id === 'melena-extract')) return false;
-    if (!cart.some(i => i.product.id === 'melena-classic')) return false;
-    for (let i = swapUndos.length - 1; i >= 0; i--) {
-      const u = swapUndos[i];
-      if (u.id.startsWith('swap-melena-extract-')) {
-        u.undo();
-        return true;
-      }
-    }
-    return false;
+  /** Cierra el modal y restaura el carrito tal como estaba al abrir (sin cambios del flujo de seguridad). */
+  const abortToShopping = () => {
+    const snap = cartAtOpenRef.current;
+    if (snap) setCart(cloneCart(snap));
+    onClose();
   };
 
   const goBackOne = () => {
@@ -651,34 +690,11 @@ function SafetyCheckModal({
       back();
       return;
     }
-    if (phase === 'confirm') {
-      tryUndoMelenaClassicToExtractP10();
-      if (navStack.length > 1) {
-        back();
-        return;
-      }
-      onClose();
-      return;
-    }
-    if (phase === 'melenaFirst') {
-      const hasExtract = cart.some(i => i.product.id === 'melena-extract');
-      if (p10First === true && !hasExtract && cart.some(i => i.product.id === 'melena-classic')) {
-        if (tryUndoMelenaClassicToExtractP10()) {
-          return;
-        }
-      }
-      if (navStack.length > 1) {
-        back();
-        return;
-      }
-      onClose();
-      return;
-    }
     if (navStack.length > 1) {
       back();
       return;
     }
-    onClose();
+    abortToShopping();
   };
 
   const renderIntro = () => (
@@ -774,7 +790,7 @@ function SafetyCheckModal({
           {!hasChlorellaInCart && (
             <button
               type="button"
-              onClick={addChlorellaOnce}
+              onClick={addChlorellaAndGoToSecurity}
               className="w-full rounded-full py-3 px-4 bg-[#AB5541] text-white text-sm font-medium"
             >
               + Agregar Chlorella al pedido
@@ -798,7 +814,7 @@ function SafetyCheckModal({
           {!hasChlorellaInCart && (
             <button
               type="button"
-              onClick={addChlorellaOnce}
+              onClick={addChlorellaAndGoToSecurity}
               className="w-full rounded-full py-3 px-4 bg-[#AB5541] text-white text-sm font-medium"
             >
               + Agregar Chlorella al pedido
@@ -1221,7 +1237,7 @@ function SafetyCheckModal({
       <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-[32px] bg-[#F0E6D2] p-6 shadow-xl">
         <button
           type="button"
-          onClick={() => (phase === 'intro' ? onConfirm() : goBackOne())}
+          onClick={() => (phase === 'intro' ? abortToShopping() : goBackOne())}
           className="absolute top-4 right-4 z-20 p-2 hover:bg-[#2F4F4F]/10 rounded-full"
         >
           <X className="w-5 h-5" />
