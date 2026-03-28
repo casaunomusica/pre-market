@@ -469,6 +469,8 @@ function anticoagWarningForId(id: string): string {
 
 type SwapUndo = { id: string; label: string; undo: () => void };
 
+type SafetyPhase = 'intro' | 'chlorella' | 'security' | 'melenaFirst' | 'confirm';
+
 function SafetyCheckModal({
   cart,
   products,
@@ -486,12 +488,9 @@ function SafetyCheckModal({
 
   const [showChlorellaStep] = useState(() => cart.some(i => i.product.kind !== 'algae'));
   const firstActivePhase = showChlorellaStep ? ('chlorella' as const) : ('security' as const);
-  const [phase, setPhase] = useState<'intro' | 'chlorella' | 'security' | 'melenaFirst' | 'confirm'>('intro');
-  const melenaPhaseEnteredRef = useRef(false);
+  const [phase, setPhase] = useState<SafetyPhase>('intro');
+  const [navStack, setNavStack] = useState<SafetyPhase[]>(['intro']);
   const pedidoHeadingShownRef = useRef(false);
-  useEffect(() => {
-    if (phase === 'melenaFirst') melenaPhaseEnteredRef.current = true;
-  }, [phase]);
 
   const [chlQ60, setChlQ60] = useState<'yes' | 'no' | null>(null);
   const [chlDur, setChlDur] = useState<'60-90' | '90+' | null>(null);
@@ -527,6 +526,39 @@ function SafetyCheckModal({
 
   const showPedidoHeading =
     phase !== 'intro' && !pedidoHeadingShownRef.current && stepLabel === 1;
+
+  const forward = (next: SafetyPhase) => {
+    setNavStack(s => [...s, next]);
+    setPhase(next);
+  };
+
+  const back = () => {
+    setNavStack(s => {
+      if (s.length <= 1) return s;
+      const nextStack = s.slice(0, -1);
+      const prev = nextStack[nextStack.length - 1];
+      setPhase(prev);
+      return nextStack;
+    });
+  };
+
+  const leaveChlorellaToSecurity = () => {
+    setNavStack(s => {
+      if (s.length === 0) return ['intro'];
+      const last = s[s.length - 1];
+      if (last === 'chlorella') {
+        return [...s.slice(0, -1), 'security'];
+      }
+      return [...s, 'security'];
+    });
+    setPhase('security');
+  };
+
+  const leaveChlorellaAfterNo = () => {
+    setChlQ60(null);
+    setChlDur(null);
+    leaveChlorellaToSecurity();
+  };
 
   const pushSwapUndo = (id: string, label: string, before: CartItem[]) => {
     setSwapUndos(u => [
@@ -583,11 +615,70 @@ function SafetyCheckModal({
 
   const hasChlorellaInCart = cart.some(i => i.product.id === 'chlorella-extract');
 
-  const goSecurity = () => setPhase('security');
-  const goConfirm = () => setPhase('confirm');
+  const goSecurity = () => leaveChlorellaToSecurity();
+  const goConfirm = () => forward('confirm');
   const goFromSecurity = () => {
-    if (cart.some(i => i.product.id === 'melena-extract')) setPhase('melenaFirst');
-    else setPhase('confirm');
+    if (cart.some(i => i.product.id === 'melena-extract')) forward('melenaFirst');
+    else forward('confirm');
+  };
+
+  /** Deshace el swap P10 melena extract → clásica para poder volver a la pantalla de elección 10:1. */
+  const tryUndoMelenaClassicToExtractP10 = (): boolean => {
+    if (p10First !== true) return false;
+    if (cart.some(i => i.product.id === 'melena-extract')) return false;
+    if (!cart.some(i => i.product.id === 'melena-classic')) return false;
+    for (let i = swapUndos.length - 1; i >= 0; i--) {
+      const u = swapUndos[i];
+      if (u.id.startsWith('swap-melena-extract-')) {
+        u.undo();
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const goBackOne = () => {
+    if (phase === 'intro') return;
+    if (phase === 'chlorella') {
+      if (chlQ60 === 'yes' && chlDur !== null) {
+        setChlDur(null);
+        return;
+      }
+      if (chlQ60 === 'yes' && chlDur === null) {
+        setChlQ60(null);
+        return;
+      }
+      back();
+      return;
+    }
+    if (phase === 'confirm') {
+      tryUndoMelenaClassicToExtractP10();
+      if (navStack.length > 1) {
+        back();
+        return;
+      }
+      onClose();
+      return;
+    }
+    if (phase === 'melenaFirst') {
+      const hasExtract = cart.some(i => i.product.id === 'melena-extract');
+      if (p10First === true && !hasExtract && cart.some(i => i.product.id === 'melena-classic')) {
+        if (tryUndoMelenaClassicToExtractP10()) {
+          return;
+        }
+      }
+      if (navStack.length > 1) {
+        back();
+        return;
+      }
+      onClose();
+      return;
+    }
+    if (navStack.length > 1) {
+      back();
+      return;
+    }
+    onClose();
   };
 
   const renderIntro = () => (
@@ -601,7 +692,7 @@ function SafetyCheckModal({
       <div className="flex flex-col gap-3 mt-8 w-full">
         <button
           type="button"
-          onClick={() => setPhase(firstActivePhase)}
+          onClick={() => forward(firstActivePhase)}
           className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
         >
           Sí
@@ -634,12 +725,15 @@ function SafetyCheckModal({
             </button>
             <button
               type="button"
-              onClick={() => { setChlQ60('no'); goSecurity(); }}
+              onClick={leaveChlorellaAfterNo}
               className="rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm"
             >
               No
             </button>
           </div>
+          <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+            Volver
+          </button>
         </div>
       );
     }
@@ -665,6 +759,9 @@ function SafetyCheckModal({
               Más de 90 días
             </button>
           </div>
+          <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+            Volver
+          </button>
         </div>
       );
     }
@@ -686,6 +783,9 @@ function SafetyCheckModal({
           <button type="button" onClick={goSecurity} className="w-full rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm">
             Continuar
           </button>
+          <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+            Volver
+          </button>
         </div>
       );
     }
@@ -706,6 +806,9 @@ function SafetyCheckModal({
           )}
           <button type="button" onClick={goSecurity} className="w-full rounded-full py-3 px-4 border border-[#2F4F4F]/25 text-sm">
             Continuar
+          </button>
+          <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+            Volver
           </button>
         </div>
       );
@@ -981,13 +1084,18 @@ function SafetyCheckModal({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={goFromSecurity}
-        className="w-full mt-4 rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
-      >
-        Continuar
-      </button>
+      <div className="flex flex-col gap-3 mt-4">
+        <button
+          type="button"
+          onClick={goFromSecurity}
+          className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
+        >
+          Continuar
+        </button>
+        <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+          Volver
+        </button>
+      </div>
     </div>
   );
 
@@ -1004,6 +1112,9 @@ function SafetyCheckModal({
               className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
             >
               Continuar al resumen
+            </button>
+            <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+              Volver
             </button>
           </div>
         );
@@ -1025,6 +1136,9 @@ function SafetyCheckModal({
               No
             </button>
           </div>
+          <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+            Volver
+          </button>
         </div>
       );
     }
@@ -1038,6 +1152,9 @@ function SafetyCheckModal({
             className="w-full rounded-full py-3.5 bg-[#2F4F4F] text-white text-sm font-medium"
           >
             Continuar al resumen
+          </button>
+          <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+            Volver
           </button>
         </div>
       );
@@ -1061,6 +1178,9 @@ function SafetyCheckModal({
           </button>
           <button type="button" onClick={goConfirm} className="w-full rounded-full py-3 border border-[#2F4F4F]/25 text-sm">
             Mantener 10:1
+          </button>
+          <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
+            Volver
           </button>
         </div>
       </div>
@@ -1089,13 +1209,7 @@ function SafetyCheckModal({
         >
           Confirmar pedido
         </button>
-        <button
-          type="button"
-          onClick={() =>
-            melenaPhaseEnteredRef.current ? setPhase('melenaFirst') : setPhase('security')
-          }
-          className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm"
-        >
+        <button type="button" onClick={goBackOne} className="w-full rounded-full py-3.5 border border-[#2F4F4F]/25 text-sm">
           Volver
         </button>
       </div>
@@ -1107,7 +1221,7 @@ function SafetyCheckModal({
       <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-[32px] bg-[#F0E6D2] p-6 shadow-xl">
         <button
           type="button"
-          onClick={phase === 'intro' ? onConfirm : onClose}
+          onClick={() => (phase === 'intro' ? onConfirm() : goBackOne())}
           className="absolute top-4 right-4 z-20 p-2 hover:bg-[#2F4F4F]/10 rounded-full"
         >
           <X className="w-5 h-5" />
