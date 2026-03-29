@@ -508,21 +508,27 @@ function SafetyCheckModal({
   const [p4, setP4] = useState<boolean | null>(null);
   const [p5, setP5] = useState<'hashimoto' | 'graves' | 'levo' | 'no' | null>(null);
   const [p6, setP6] = useState<boolean | null>(null);
+  const [p6b, setP6b] = useState<boolean | null>(null);
   const [p7, setP7] = useState<boolean | null>(null);
   const [p8, setP8] = useState<boolean | null>(null);
   const [p9, setP9] = useState<boolean | null>(null);
   const [p10First, setP10First] = useState<boolean | null>(null);
 
   const showMelenaPhase = cart.some(i => i.product.id === 'melena-extract');
+  const showReishiP6bStep = cart.some(i => i.product.id === 'reishi-extract');
   const totalSteps =
-    (showChlorellaStep ? 1 : 0) + 1 + (showMelenaPhase ? 1 : 0) + 1;
+    (showChlorellaStep ? 1 : 0) +
+    1 +
+    (showMelenaPhase ? 1 : 0) +
+    1 +
+    (showReishiP6bStep ? 1 : 0);
   const stepLabel =
     phase === 'chlorella'
       ? 1
       : phase === 'security'
         ? 1 + (showChlorellaStep ? 1 : 0)
         : phase === 'melenaFirst'
-          ? 1 + (showChlorellaStep ? 1 : 0) + 1
+          ? 1 + (showChlorellaStep ? 1 : 0) + 1 + (showReishiP6bStep ? 1 : 0)
           : totalSteps;
 
   useEffect(() => {
@@ -568,6 +574,7 @@ function SafetyCheckModal({
           setP4(null);
           setP5(null);
           setP6(null);
+          setP6b(null);
           setP7(null);
           setP8(null);
           setP9(null);
@@ -846,7 +853,7 @@ function SafetyCheckModal({
       {cartHasAnyId(cart, IDS_ANTICOAG) && (
         <div className="space-y-3">
           <p className="text-sm text-[#2F4F4F]/90 leading-snug">
-            ¿Estás tomando anticoagulantes o antiagregantes? (Warfarina, Apixaban, Aspirina u otros)
+            ¿Estás tomando anticoagulantes o antiagregantes? (Warfarina, Acenocumarol, Aspirina u otros)
           </p>
           {p1 === null && (
             <div className="flex gap-2">
@@ -1030,6 +1037,35 @@ function SafetyCheckModal({
                 <p className="text-xs text-[#2F4F4F]/75">El Reishi inhibe enzimas hepáticas (CYP450). Evitar con paracetamol o alcohol.</p>
               )}
             </div>
+          )}
+        </div>
+      )}
+
+      {cartHasAnyId(cart, ['reishi-extract']) && (
+        <div className="space-y-3">
+          <p className="text-sm text-[#2F4F4F]/90 leading-snug">
+            ¿Estás tomando estatinas o antihipertensivos? (Rosuvastatina, Atorvastatina, Enalapril, Losartán u otros)
+          </p>
+          {p6b === null && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setP6b(true)} className="flex-1 rounded-full py-2.5 bg-[#2F4F4F] text-white text-sm">
+                Sí
+              </button>
+              <button type="button" onClick={() => setP6b(false)} className="flex-1 rounded-full py-2.5 border border-[#2F4F4F]/25 text-sm">
+                No
+              </button>
+            </div>
+          )}
+          {p6b === false && (
+            <div className="flex items-center gap-2 text-[#2F4F4F]/50">
+              <Check className="w-4 h-4" />
+              <span className="text-sm">Listo</span>
+            </div>
+          )}
+          {p6b === true && (
+            <p className="text-xs text-[#2F4F4F]/75 leading-relaxed">
+              El Reishi puede elevar los niveles de estatinas y antihipertensivos en sangre al inhibir la enzima CYP3A4. Consultá con tu médico.
+            </p>
           )}
         </div>
       )}
