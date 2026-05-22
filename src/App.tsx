@@ -203,16 +203,20 @@ const PRESETS = [
   { id: 'nocturno', name: 'Nocturno', description: '100 mg La Fuerza, 250 mg Reishi', ingredients: { cositas: 100, melena: 0, reishi: 250, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
 ];
 
-/** Escala La Fuerza (no lineal). Incluye 0 para cupo agotado por otros ingredientes. */
-const LA_FUERZA_SLIDER_STEPS = [0, 50, 100, 150, 200, 250, 300, 350] as const;
+/** Escala La Fuerza (no lineal). Mínimo 50 mg; sin paso en 0. */
+const LA_FUERZA_SLIDER_STEPS = [50, 100, 150, 200, 250, 300, 350] as const;
 
 function laFuerzaSliderIndexFromMg(mg: number): number {
-  const i = LA_FUERZA_SLIDER_STEPS.indexOf(mg as (typeof LA_FUERZA_SLIDER_STEPS)[number]);
+  const normalized =
+    mg < LA_FUERZA_SLIDER_STEPS[0] ? LA_FUERZA_SLIDER_STEPS[0] : mg;
+  const i = LA_FUERZA_SLIDER_STEPS.indexOf(
+    normalized as (typeof LA_FUERZA_SLIDER_STEPS)[number]
+  );
   if (i >= 0) return i;
   let best = 0;
   let bestDiff = Infinity;
   LA_FUERZA_SLIDER_STEPS.forEach((v, idx) => {
-    const d = Math.abs(v - mg);
+    const d = Math.abs(v - normalized);
     if (d < bestDiff) {
       bestDiff = d;
       best = idx;
@@ -222,10 +226,13 @@ function laFuerzaSliderIndexFromMg(mg: number): number {
 }
 
 function laFuerzaMgFromSliderIndex(index: number, maxCosMg: number): number {
-  const desired = LA_FUERZA_SLIDER_STEPS[Math.min(Math.max(0, index), LA_FUERZA_SLIDER_STEPS.length - 1)];
-  const capped = Math.min(desired, maxCosMg);
+  const desired =
+    LA_FUERZA_SLIDER_STEPS[
+      Math.min(Math.max(0, index), LA_FUERZA_SLIDER_STEPS.length - 1)
+    ];
   const valid = LA_FUERZA_SLIDER_STEPS.filter(m => m <= maxCosMg);
   if (valid.length === 0) return 0;
+  const capped = Math.min(desired, maxCosMg);
   const fits = LA_FUERZA_SLIDER_STEPS.filter(m => m <= capped);
   return fits.length ? fits[fits.length - 1]! : valid[valid.length - 1]!;
 }
@@ -1976,6 +1983,7 @@ export default function App() {
                     min={0}
                     max={LA_FUERZA_SLIDER_STEPS.length - 1}
                     step={1}
+                    disabled={350 - (customMixTotalMg - customMix.ingredients.cositas) < LA_FUERZA_SLIDER_STEPS[0]}
                     value={laFuerzaSliderIndexFromMg(customMix.ingredients.cositas)}
                     onChange={(e) => {
                       const idx = parseInt(e.target.value, 10);
@@ -1987,17 +1995,14 @@ export default function App() {
                         ingredients: { ...prev.ingredients, cositas: val }
                       }));
                     }}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#2F4F4F] bg-[#F0E6D2]/60"
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#2F4F4F] bg-[#F0E6D2]/60 disabled:opacity-40 disabled:cursor-not-allowed"
                   />
-                  <div className="grid grid-cols-8 gap-0.5 text-[10px] sm:text-xs text-[#2F4F4F]/70 font-mono leading-tight text-center">
-                    <span className="min-w-0" aria-hidden />
-                    <span className="min-w-0">50</span>
-                    <span className="min-w-0">100</span>
-                    <span className="min-w-0">150</span>
-                    <span className="min-w-0">200</span>
-                    <span className="min-w-0">250</span>
-                    <span className="min-w-0">300</span>
-                    <span className="min-w-0">350</span>
+                  <div className="flex justify-between text-[10px] sm:text-xs text-[#2F4F4F]/70 font-mono leading-tight px-0.5">
+                    {LA_FUERZA_SLIDER_STEPS.map(step => (
+                      <span key={step} className="tabular-nums">
+                        {step}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
