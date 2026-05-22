@@ -204,7 +204,7 @@ const PRESETS = [
 ];
 
 /** Escala La Fuerza (no lineal). Incluye 0 para cupo agotado por otros ingredientes. */
-const LA_FUERZA_SLIDER_STEPS = [0, 25, 50, 100, 150, 200, 300, 350] as const;
+const LA_FUERZA_SLIDER_STEPS = [0, 50, 100, 150, 200, 250, 300, 350] as const;
 
 function laFuerzaSliderIndexFromMg(mg: number): number {
   const i = LA_FUERZA_SLIDER_STEPS.indexOf(mg as (typeof LA_FUERZA_SLIDER_STEPS)[number]);
@@ -1991,11 +1991,11 @@ export default function App() {
                   />
                   <div className="grid grid-cols-8 gap-0.5 text-[10px] sm:text-xs text-[#2F4F4F]/70 font-mono leading-tight text-center">
                     <span className="min-w-0" aria-hidden />
-                    <span className="min-w-0">25</span>
                     <span className="min-w-0">50</span>
                     <span className="min-w-0">100</span>
                     <span className="min-w-0">150</span>
                     <span className="min-w-0">200</span>
+                    <span className="min-w-0">250</span>
                     <span className="min-w-0">300</span>
                     <span className="min-w-0">350</span>
                   </div>
