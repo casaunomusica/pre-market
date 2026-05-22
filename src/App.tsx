@@ -225,16 +225,44 @@ function laFuerzaSliderIndexFromMg(mg: number): number {
   return best;
 }
 
+function customMixOtherActiveMg(recipe: CustomMixRecipe, excludeId: string): number {
+  return Object.entries(recipe.ingredients).reduce((acc, [id, mg]) => {
+    if (id === excludeId) return acc;
+    if (id === 'niacina' && !recipe.isNiacinaEnabled) return acc;
+    if (id === 'reishi' && recipe.isAshwagandhaActive) return acc;
+    if (id === 'ashwagandha' && !recipe.isAshwagandhaActive) return acc;
+    return acc + (mg as number);
+  }, 0);
+}
+
+function laFuerzaMaxCosMg(recipe: CustomMixRecipe): number {
+  return Math.max(0, 350 - customMixOtherActiveMg(recipe, 'cositas'));
+}
+
+function laFuerzaMaxSliderIndex(maxCosMg: number): number {
+  if (maxCosMg < LA_FUERZA_SLIDER_STEPS[0]) return 0;
+  let maxIdx = 0;
+  LA_FUERZA_SLIDER_STEPS.forEach((step, idx) => {
+    if (step <= maxCosMg) maxIdx = idx;
+  });
+  return maxIdx;
+}
+
 function laFuerzaMgFromSliderIndex(index: number, maxCosMg: number): number {
-  const desired =
-    LA_FUERZA_SLIDER_STEPS[
-      Math.min(Math.max(0, index), LA_FUERZA_SLIDER_STEPS.length - 1)
-    ];
-  const valid = LA_FUERZA_SLIDER_STEPS.filter(m => m <= maxCosMg);
-  if (valid.length === 0) return 0;
-  const capped = Math.min(desired, maxCosMg);
-  const fits = LA_FUERZA_SLIDER_STEPS.filter(m => m <= capped);
-  return fits.length ? fits[fits.length - 1]! : valid[valid.length - 1]!;
+  if (maxCosMg < LA_FUERZA_SLIDER_STEPS[0]) return 0;
+  const clampedIndex = Math.min(
+    Math.max(0, index),
+    laFuerzaMaxSliderIndex(maxCosMg),
+    LA_FUERZA_SLIDER_STEPS.length - 1
+  );
+  return LA_FUERZA_SLIDER_STEPS[clampedIndex]!;
+}
+
+function capLaFuerzaMg(cositasMg: number, recipe: CustomMixRecipe): number {
+  const maxCos = laFuerzaMaxCosMg(recipe);
+  if (maxCos < LA_FUERZA_SLIDER_STEPS[0]) return 0;
+  const idx = laFuerzaSliderIndexFromMg(cositasMg);
+  return laFuerzaMgFromSliderIndex(idx, maxCos);
 }
 
 const WHATSAPP_NUMBER = '5493515915643';
@@ -355,6 +383,60 @@ function formatCustomMixIngredients(recipe: CustomMixRecipe): string[] {
       const suffix = id === 'niacina' ? ' (Stamets)' : '';
       return `${name}: ${mg} mg/cap${suffix}`;
     });
+}
+
+function formatCustomMixLineTitle(item: CustomMixCartItem): string {
+  const ingredientLines = formatCustomMixIngredients(item.recipe);
+  if (ingredientLines.length === 1) {
+    return `${item.quantity}× ${ingredientLines[0]!.replace(': ', ' ')}`;
+  }
+  return `${item.quantity}× mezcla personalizada`;
+}
+
+function formatCustomMixLinePrice(
+  item: CustomMixCartItem,
+  discountRate: number
+): string {
+  const lineSubtotal = Math.round(
+    item.quantity * computeCustomMixJarCost(item.recipe)
+  );
+  if (discountRate <= 0) {
+    return `*$${lineSubtotal.toLocaleString('es-AR')}*`;
+  }
+  const lineDiscounted = Math.round(lineSubtotal * (1 - discountRate));
+  return `~~$${lineSubtotal.toLocaleString('es-AR')}~~ *$${lineDiscounted.toLocaleString('es-AR')}*`;
+}
+
+function buildCustomMixWhatsAppBody(
+  cart: CustomMixCartItem[],
+  pricing: ReturnType<typeof computeCustomCartPricing>
+): string {
+  const totalCaps = pricing.totalJars * 16;
+  let message = `*Cápsulas a medida* · ${pricing.totalJars} frascos (${totalCaps} cápsulas)\n\n`;
+
+  cart.forEach(item => {
+    message += `${formatCustomMixLineTitle(item)}\n`;
+    message += `${formatCustomMixLinePrice(item, pricing.discountRate)}\n`;
+    const ingredientLines = formatCustomMixIngredients(item.recipe);
+    if (ingredientLines.length > 1) {
+      ingredientLines.forEach(line => {
+        message += `• ${line}\n`;
+      });
+    }
+    message += `\n`;
+  });
+
+  const roundedDiscount = Math.max(0, pricing.totalSinDescuento - pricing.totalFinal);
+
+  if (pricing.descuentoAplicado) {
+    message += `Subtotal: $${pricing.totalSinDescuento.toLocaleString('es-AR')}\n`;
+    message += `Descuento ${pricing.discountRate * 100}%: -$${roundedDiscount.toLocaleString('es-AR')}\n`;
+    message += `*Total productos: $${pricing.totalFinal.toLocaleString('es-AR')}*\n`;
+  } else {
+    message += `*Total productos: $${pricing.totalFinal.toLocaleString('es-AR')}*\n`;
+  }
+
+  return message;
 }
 
 // --- Components ---
@@ -1562,6 +1644,16 @@ export default function App() {
     [customMix]
   );
 
+  const laFuerzaMaxCos = useMemo(
+    () => laFuerzaMaxCosMg(customMixRecipeFromBuilder(customMix)),
+    [customMix]
+  );
+  const laFuerzaSliderMaxIndex = laFuerzaMaxSliderIndex(laFuerzaMaxCos);
+  const laFuerzaSliderValue = Math.min(
+    laFuerzaSliderIndexFromMg(customMix.ingredients.cositas),
+    laFuerzaSliderMaxIndex
+  );
+
   const customMixCartJars = useMemo(() => customMixCartTotalJars(customMixCart), [customMixCart]);
   const customMixMaxJarsToAdd = Math.max(0, CUSTOM_MIX_MAX_JARS - customMixCartJars);
   const customMixCartPricing = useMemo(() => computeCustomCartPricing(customMixCart), [customMixCart]);
@@ -1600,6 +1692,19 @@ export default function App() {
     });
   };
 
+  const resetCustomMixBuilder = () => {
+    setCustomMix({
+      ...DEFAULT_CUSTOM_MIX,
+      ingredients: { ...DEFAULT_CUSTOM_MIX.ingredients },
+    });
+    setShowProtocolInfo(false);
+  };
+
+  const openSecretMarket = () => {
+    resetCustomMixBuilder();
+    setIsSecretMarketOpen(true);
+  };
+
   const closeSecretMarket = () => {
     setIsSecretMarketOpen(false);
   };
@@ -1612,28 +1717,7 @@ export default function App() {
       message = toSeller
         ? `¡Hola Charlie! Quisiera consultar este pedido:\n\n`
         : `¡Hola! Quisiera consultar este pedido:\n\n`;
-      message += `Cápsulas a medida (${customMixCartPricing.totalJars} frascos · ${customMixCartPricing.totalJars * 16} cápsulas)\n\n`;
-
-      customMixCart.forEach(item => {
-        message += `${item.quantity}× mezcla (${item.quantity * 16} cápsulas)\n`;
-        formatCustomMixIngredients(item.recipe).forEach(line => {
-          message += `• ${line}\n`;
-        });
-        message += `\n`;
-      });
-
-      const roundedDiscount = Math.max(
-        0,
-        customMixCartPricing.totalSinDescuento - customMixCartPricing.totalFinal
-      );
-
-      if (customMixCartPricing.descuentoAplicado) {
-        message += `Subtotal: $${customMixCartPricing.totalSinDescuento.toLocaleString()}\n`;
-        message += `Descuento ${customMixCartPricing.discountRate * 100}%: -$${roundedDiscount.toLocaleString()}\n`;
-        message += `*Total productos: $${customMixCartPricing.totalFinal.toLocaleString()}*\n`;
-      } else {
-        message += `*Total:* $${customMixCartPricing.totalFinal.toLocaleString()}\n`;
-      }
+      message += buildCustomMixWhatsAppBody(customMixCart, customMixCartPricing);
     } else {
       message += `Productos:\n`;
       cart.forEach(item => {
@@ -1705,7 +1789,7 @@ export default function App() {
       });
       const data = await res.json().catch(() => ({}));
       if (data.success) {
-        setIsSecretMarketOpen(true);
+        openSecretMarket();
         setShowPasswordModal(false);
         setPassword('');
       } else {
@@ -1905,11 +1989,8 @@ export default function App() {
               </div>
 
               <p className="text-base text-[#1a1a1a]/80 mb-6 leading-relaxed">
-                Armá cada mezcla, agregala al pedido y repetí con otra combinación si querés (hasta 4 frascos en total).
-                Cada frasco tiene 16 cápsulas y máximo 350 mg por cápsula.
-              </p>
-              <p className="text-sm text-[#2F4F4F]/70 mb-6">
-                2 frascos: 10% OFF · 4 frascos: 20% OFF (en todo el pedido, como en la tienda principal).
+                Armá tu frasco personalizado. Cada frasco contiene 16 cápsulas. Máximo 350 mg total por cápsula.
+                Podés elegir un protocolo o ajustar los valores según tu necesidad.
               </p>
 
               {/* Presets */}
@@ -1917,12 +1998,22 @@ export default function App() {
                 {PRESETS.map(preset => (
                   <button
                     key={preset.id}
-                    onClick={() => setCustomMix(prev => ({
-                      ...prev,
-                      ingredients: { ...preset.ingredients },
-                      isNiacinaEnabled: preset.niacinaEnabled,
-                      isAshwagandhaActive: preset.ashwagandhaActive
-                    }))}
+                    onClick={() => setCustomMix(prev => {
+                      const next = {
+                        ...prev,
+                        ingredients: { ...preset.ingredients },
+                        isNiacinaEnabled: preset.niacinaEnabled,
+                        isAshwagandhaActive: preset.ashwagandhaActive,
+                      };
+                      const recipe = customMixRecipeFromBuilder(next);
+                      return {
+                        ...next,
+                        ingredients: {
+                          ...next.ingredients,
+                          cositas: capLaFuerzaMg(next.ingredients.cositas, recipe),
+                        },
+                      };
+                    })}
                     className="p-4 bg-white rounded-2xl border border-[#2F4F4F]/15 hover:border-[#AB5541]/30 transition-all text-left group"
                   >
                     <p className="text-xs font-bold text-[#2F4F4F] mb-1 uppercase tracking-wider">{preset.name}</p>
@@ -1981,15 +2072,13 @@ export default function App() {
                   <input 
                     type="range"
                     min={0}
-                    max={LA_FUERZA_SLIDER_STEPS.length - 1}
+                    max={laFuerzaSliderMaxIndex}
                     step={1}
-                    disabled={350 - (customMixTotalMg - customMix.ingredients.cositas) < LA_FUERZA_SLIDER_STEPS[0]}
-                    value={laFuerzaSliderIndexFromMg(customMix.ingredients.cositas)}
+                    disabled={laFuerzaMaxCos < LA_FUERZA_SLIDER_STEPS[0]}
+                    value={laFuerzaSliderValue}
                     onChange={(e) => {
                       const idx = parseInt(e.target.value, 10);
-                      const otherTotal = customMixTotalMg - customMix.ingredients.cositas;
-                      const maxCos = Math.max(0, 350 - otherTotal);
-                      const val = laFuerzaMgFromSliderIndex(idx, maxCos);
+                      const val = laFuerzaMgFromSliderIndex(idx, laFuerzaMaxCos);
                       setCustomMix(prev => ({
                         ...prev,
                         ingredients: { ...prev.ingredients, cositas: val }
@@ -2033,10 +2122,20 @@ export default function App() {
                       const otherTotal = customMixTotalMg - customMix.ingredients.melena;
                       const allowed = Math.max(0, 350 - otherTotal);
                       const val = Math.min(raw, allowed);
-                      setCustomMix(prev => ({
-                        ...prev,
-                        ingredients: { ...prev.ingredients, melena: val }
-                      }));
+                      setCustomMix(prev => {
+                        const nextIngredients = { ...prev.ingredients, melena: val };
+                        const recipe = customMixRecipeFromBuilder({
+                          ...prev,
+                          ingredients: nextIngredients,
+                        });
+                        return {
+                          ...prev,
+                          ingredients: {
+                            ...nextIngredients,
+                            cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
+                          },
+                        };
+                      });
                     }}
                     className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#8B7D6B] bg-[#F0E6D2]/60"
                   />
@@ -2050,7 +2149,17 @@ export default function App() {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 bg-[#F0E6D2]/60 p-1 rounded-xl">
                       <button 
-                        onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: false }))}
+                        onClick={() => setCustomMix(prev => {
+                          const next = { ...prev, isAshwagandhaActive: false };
+                          const recipe = customMixRecipeFromBuilder(next);
+                          return {
+                            ...next,
+                            ingredients: {
+                              ...next.ingredients,
+                              cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
+                            },
+                          };
+                        })}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                           !customMix.isAshwagandhaActive ? "bg-[#F0E6D2] shadow-sm text-[#7D2D2D]" : "text-[#2F4F4F]/70"
@@ -2059,7 +2168,17 @@ export default function App() {
                         Reishi
                       </button>
                       <button 
-                        onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: true }))}
+                        onClick={() => setCustomMix(prev => {
+                          const next = { ...prev, isAshwagandhaActive: true };
+                          const recipe = customMixRecipeFromBuilder(next);
+                          return {
+                            ...next,
+                            ingredients: {
+                              ...next.ingredients,
+                              cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
+                            },
+                          };
+                        })}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                           customMix.isAshwagandhaActive ? "bg-[#F0E6D2] shadow-sm text-[#D4B483]" : "text-[#2F4F4F]/70"
@@ -2091,10 +2210,20 @@ export default function App() {
                       const otherTotal = customMixTotalMg - currentVal;
                       const allowed = Math.max(0, 350 - otherTotal);
                       const val = Math.min(raw, allowed);
-                      setCustomMix(prev => ({
-                        ...prev,
-                        ingredients: { ...prev.ingredients, [key]: val }
-                      }));
+                      setCustomMix(prev => {
+                        const nextIngredients = { ...prev.ingredients, [key]: val };
+                        const recipe = customMixRecipeFromBuilder({
+                          ...prev,
+                          ingredients: nextIngredients,
+                        });
+                        return {
+                          ...prev,
+                          ingredients: {
+                            ...nextIngredients,
+                            cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
+                          },
+                        };
+                      });
                     }}
                     className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[#F0E6D2]/60"
                     style={{ accentColor: customMix.isAshwagandhaActive ? '#D4B483' : '#7D2D2D' }}
@@ -2107,7 +2236,17 @@ export default function App() {
                   !customMix.isNiacinaEnabled ? "border-[#2F4F4F]/15" : "border-[#F27D26]/30 shadow-sm shadow-[#F27D26]/5"
                 )}>
                   <div className="flex justify-between items-center cursor-pointer" onClick={() => {
-                    setCustomMix(prev => ({ ...prev, isNiacinaEnabled: !prev.isNiacinaEnabled }));
+                    setCustomMix(prev => {
+                      const next = { ...prev, isNiacinaEnabled: !prev.isNiacinaEnabled };
+                      const recipe = customMixRecipeFromBuilder(next);
+                      return {
+                        ...next,
+                        ingredients: {
+                          ...next.ingredients,
+                          cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
+                        },
+                      };
+                    });
                   }}>
                     <div className="flex items-center gap-3">
                       <div className={cn(
@@ -2162,7 +2301,20 @@ export default function App() {
                               disabled={isDisabled}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setCustomMix(prev => ({ ...prev, ingredients: { ...prev.ingredients, niacina: mg } }));
+                                setCustomMix(prev => {
+                                  const nextIngredients = { ...prev.ingredients, niacina: mg };
+                                  const recipe = customMixRecipeFromBuilder({
+                                    ...prev,
+                                    ingredients: nextIngredients,
+                                  });
+                                  return {
+                                    ...prev,
+                                    ingredients: {
+                                      ...nextIngredients,
+                                      cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
+                                    },
+                                  };
+                                });
                               }}
                               className={cn(
                                 "py-2 rounded-xl text-xs font-bold transition-all border",
@@ -2282,11 +2434,17 @@ export default function App() {
                 </div>
               )}
 
-              {customMixCart.length === 0 && (
-                <p className="text-sm text-[#1a1a1a]/60 italic pt-6 border-t border-[#1a1a1a]/5">
-                  Agregá al menos una mezcla al pedido para consultar stock o enviar por WhatsApp.
+              <div className="pt-6 border-t border-[#1a1a1a]/5 space-y-2 text-sm text-[#2F4F4F]/70 leading-relaxed">
+                <p>
+                  Armá cada mezcla, agregala al pedido y repetí con otra combinación si querés.
                 </p>
-              )}
+                <p>2 frascos: 10% OFF · 4 frascos: 20% OFF</p>
+                {customMixCart.length === 0 && (
+                  <p className="text-[#1a1a1a]/60 italic">
+                    Agregá al menos una mezcla al pedido para consultar stock o enviar por WhatsApp.
+                  </p>
+                )}
+              </div>
             </div>
             </div>
 
