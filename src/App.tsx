@@ -233,11 +233,121 @@ function laFuerzaMgFromSliderIndex(index: number, maxCosMg: number): number {
 const WHATSAPP_NUMBER = '5493515915643';
 const PRODUCER_NAME = 'Charlie';
 
-interface CustomMix {
-  ingredients: { [key: string]: number }; // mushroomId: mg
-  jars: number; // number of bottles (1, 2, 3)
+interface CustomMixRecipe {
+  ingredients: { [key: string]: number };
   isAshwagandhaActive: boolean;
   isNiacinaEnabled: boolean;
+}
+
+interface CustomMix extends CustomMixRecipe {
+  jars: number; // frascos de esta mezcla a agregar al pedido
+}
+
+interface CustomMixCartItem {
+  recipe: CustomMixRecipe;
+  quantity: number;
+}
+
+const CUSTOM_MIX_MAX_JARS = 4;
+const CUSTOM_MIX_BASE_FEE = 5500;
+
+const DEFAULT_CUSTOM_MIX: CustomMix = {
+  ingredients: {
+    cositas: 100,
+    melena: 0,
+    reishi: 0,
+    ashwagandha: 0,
+    niacina: 0
+  },
+  jars: 1,
+  isAshwagandhaActive: false,
+  isNiacinaEnabled: false
+};
+
+function customMixDiscountRate(totalJars: number): number {
+  if (totalJars >= 4) return 0.20;
+  if (totalJars >= 2) return 0.10;
+  return 0;
+}
+
+function computeCustomMixJarCost(recipe: CustomMixRecipe): number {
+  const { ingredients, isAshwagandhaActive, isNiacinaEnabled } = recipe;
+  const A_cos = ingredients.cositas || 0;
+  const A_mel = ingredients.melena || 0;
+  const A_adapt = isAshwagandhaActive
+    ? (ingredients.ashwagandha || 0)
+    : (ingredients.reishi || 0);
+  const A_nia = isNiacinaEnabled ? (ingredients.niacina || 0) : 0;
+
+  const C_ing_cap =
+    (A_cos / 1000) * 10000 +
+    (A_mel / 1000) * 760 +
+    (A_adapt / 1000) * 760 +
+    (A_nia / 1000) * 100;
+
+  return 16 * C_ing_cap + 3382;
+}
+
+function customMixCartTotalJars(cart: CustomMixCartItem[]): number {
+  return cart.reduce((acc, item) => acc + item.quantity, 0);
+}
+
+function computeCustomCartPricing(cart: CustomMixCartItem[]) {
+  const subtotal = cart.reduce(
+    (acc, item) => acc + item.quantity * computeCustomMixJarCost(item.recipe),
+    0
+  );
+  const totalJars = customMixCartTotalJars(cart);
+  const discountRate = customMixDiscountRate(totalJars);
+  const subtotalConDescuento = subtotal * (1 - discountRate);
+  const totalSinDescuento = Math.round((subtotal + CUSTOM_MIX_BASE_FEE) / 100) * 100;
+  const totalFinal = Math.round((subtotalConDescuento + CUSTOM_MIX_BASE_FEE) / 100) * 100;
+
+  return {
+    subtotal,
+    subtotalConDescuento,
+    totalSinDescuento,
+    totalFinal,
+    discountRate,
+    totalJars,
+    descuentoAplicado: discountRate > 0
+  };
+}
+
+function customMixRecipesEqual(a: CustomMixRecipe, b: CustomMixRecipe): boolean {
+  if (a.isAshwagandhaActive !== b.isAshwagandhaActive) return false;
+  if (a.isNiacinaEnabled !== b.isNiacinaEnabled) return false;
+  const ids = ['cositas', 'melena', 'reishi', 'ashwagandha', 'niacina'] as const;
+  return ids.every(id => (a.ingredients[id] ?? 0) === (b.ingredients[id] ?? 0));
+}
+
+function customMixRecipeFromBuilder(mix: CustomMix): CustomMixRecipe {
+  const { ingredients, isAshwagandhaActive, isNiacinaEnabled } = mix;
+  return { ingredients: { ...ingredients }, isAshwagandhaActive, isNiacinaEnabled };
+}
+
+function customMixActiveMg(recipe: CustomMixRecipe): number {
+  return Object.entries(recipe.ingredients).reduce((acc, [id, mg]) => {
+    if (id === 'niacina' && !recipe.isNiacinaEnabled) return acc;
+    if (id === 'reishi' && recipe.isAshwagandhaActive) return acc;
+    if (id === 'ashwagandha' && !recipe.isAshwagandhaActive) return acc;
+    return acc + (mg as number);
+  }, 0);
+}
+
+function formatCustomMixIngredients(recipe: CustomMixRecipe): string[] {
+  return Object.entries(recipe.ingredients)
+    .filter(([id, mg]) => {
+      if (id === 'niacina' && !recipe.isNiacinaEnabled) return false;
+      if (id === 'reishi' && recipe.isAshwagandhaActive) return false;
+      if (id === 'ashwagandha' && !recipe.isAshwagandhaActive) return false;
+      return (mg as number) > 0;
+    })
+    .map(([id, mg]) => {
+      const name = MUSHROOM_INGREDIENTS.find(i => i.id === id)?.name;
+      const suffix = id === 'niacina' ? ' (Stamets)' : '';
+      return `${name}: ${mg} mg/cap${suffix}`;
+    });
 }
 
 // --- Components ---
@@ -1343,24 +1453,14 @@ function SafetyCheckModal({
 export default function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
-  const [pendingWhatsApp, setPendingWhatsApp] = useState<{ toSeller: boolean } | null>(null);
+  const [pendingWhatsApp, setPendingWhatsApp] = useState<{ toSeller: boolean; isCustom?: boolean } | null>(null);
   const [isSecretMarketOpen, setIsSecretMarketOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showProtocolInfo, setShowProtocolInfo] = useState(false);
   const [showNiacinaModal, setShowNiacinaModal] = useState(false);
   const [password, setPassword] = useState('');
-  const [customMix, setCustomMix] = useState<CustomMix>({
-    ingredients: {
-      cositas: 100,
-      melena: 0,
-      reishi: 0,
-      ashwagandha: 0,
-      niacina: 0
-    },
-    jars: 1,
-    isAshwagandhaActive: false,
-    isNiacinaEnabled: false
-  });
+  const [customMix, setCustomMix] = useState<CustomMix>(DEFAULT_CUSTOM_MIX);
+  const [customMixCart, setCustomMixCart] = useState<CustomMixCartItem[]>([]);
 
   // --- Logic ---
 
@@ -1450,89 +1550,82 @@ export default function App() {
 
   // --- Secret Market Logic ---
 
-  const customMixTotalMg = useMemo(() => 
-    Object.entries(customMix.ingredients).reduce((acc, [id, mg]) => {
-      if (id === 'niacina' && !customMix.isNiacinaEnabled) return acc;
-      if (id === 'reishi' && customMix.isAshwagandhaActive) return acc;
-      if (id === 'ashwagandha' && !customMix.isAshwagandhaActive) return acc;
-      return acc + (mg as number);
-    }, 0)
-  , [customMix.ingredients, customMix.isNiacinaEnabled, customMix.isAshwagandhaActive]);
+  const customMixTotalMg = useMemo(
+    () => customMixActiveMg(customMixRecipeFromBuilder(customMix)),
+    [customMix]
+  );
 
-  const customMixPricing = useMemo(() => {
-    const { ingredients, isAshwagandhaActive, isNiacinaEnabled, jars: Q } = customMix;
-    
-    const A_cos = ingredients.cositas || 0;
-    const A_mel = ingredients.melena || 0;
-    const A_adapt = isAshwagandhaActive 
-      ? (ingredients.ashwagandha || 0) 
-      : (ingredients.reishi || 0);
-    const A_nia = isNiacinaEnabled ? (ingredients.niacina || 0) : 0;
+  const customMixCartJars = useMemo(() => customMixCartTotalJars(customMixCart), [customMixCart]);
+  const customMixMaxJarsToAdd = Math.max(0, CUSTOM_MIX_MAX_JARS - customMixCartJars);
+  const customMixCartPricing = useMemo(() => computeCustomCartPricing(customMixCart), [customMixCart]);
 
-    // Cost of ingredients per capsule
-    const C_ing_cap = 
-      (A_cos / 1000) * 10000 +
-      (A_mel / 1000) * 760 +
-      (A_adapt / 1000) * 760 +
-      (A_nia / 1000) * 100;
+  useEffect(() => {
+    if (customMixMaxJarsToAdd > 0 && customMix.jars > customMixMaxJarsToAdd) {
+      setCustomMix(p => ({ ...p, jars: customMixMaxJarsToAdd }));
+    }
+  }, [customMixMaxJarsToAdd, customMix.jars]);
 
-    // Cost total per jar (16 capsules)
-    // F = 700 + 250 + 2000 + 432 = 3382
-    const C_jar = 16 * C_ing_cap + 3382;
-    
-    // Subtotal before discount
-    const S = Q * C_jar;
-    
-    // Discount (10% off if Q >= 2)
-    const S_disc = Q >= 2 ? S * 0.9 : S;
-    
-    // Final totals (Price to customer) with rounding to nearest 100
-    const totalSinDescuento = Math.round((S + 5500) / 100) * 100;
-    const T = Math.round((S_disc + 5500) / 100) * 100;
+  const addCustomMixToCart = () => {
+    if (customMixTotalMg > 350 || customMixMaxJarsToAdd < 1) return;
+    const qty = Math.min(customMix.jars, customMixMaxJarsToAdd);
+    const recipe = customMixRecipeFromBuilder(customMix);
+    setCustomMixCart(prev => {
+      const idx = prev.findIndex(item => customMixRecipesEqual(item.recipe, recipe));
+      if (idx >= 0) {
+        return prev.map((item, i) =>
+          i === idx ? { ...item, quantity: item.quantity + qty } : item
+        );
+      }
+      return [...prev, { recipe, quantity: qty }];
+    });
+    setCustomMix(p => ({ ...p, jars: 1 }));
+  };
 
-    return {
-      costoPorCapsula: C_ing_cap,
-      costoPorFrasco: C_jar,
-      subtotal: S,
-      subtotalConDescuento: S_disc,
-      totalSinDescuento,
-      totalFinal: T,
-      descuentoAplicado: Q >= 2
-    };
-  }, [customMix]);
+  const adjustCustomMixCartQty = (index: number, delta: number) => {
+    setCustomMixCart(prev => {
+      const item = prev[index];
+      if (!item) return prev;
+      const nextQty = item.quantity + delta;
+      const otherJars = customMixCartTotalJars(prev) - item.quantity;
+      if (delta > 0 && otherJars + nextQty > CUSTOM_MIX_MAX_JARS) return prev;
+      if (nextQty <= 0) return prev.filter((_, i) => i !== index);
+      return prev.map((line, i) => (i === index ? { ...line, quantity: nextQty } : line));
+    });
+  };
+
+  const closeSecretMarket = () => {
+    setIsSecretMarketOpen(false);
+  };
 
   const handleWhatsApp = (toSeller: boolean, isCustom: boolean = false) => {
     // Market (main cart): "Hola Charlie" (Secret Market mantiene "Hola" sin nombre)
     let message = `¡Hola Charlie! Quisiera consultar este pedido:\n\n`;
 
     if (isCustom) {
-      message = `¡Hola! Quisiera consultar este pedido:\n\n`;
-      message += `Mi mezcla personalizada – ${customMix.jars} frascos (${customMix.jars * 16} cápsulas)\n`;
-      
-      const activeIngredients = Object.entries(customMix.ingredients)
-        .filter(([id, mg]) => {
-          if (id === 'niacina' && !customMix.isNiacinaEnabled) return false;
-          if (id === 'reishi' && customMix.isAshwagandhaActive) return false;
-          if (id === 'ashwagandha' && !customMix.isAshwagandhaActive) return false;
-          return (mg as number) > 0;
+      message = toSeller
+        ? `¡Hola Charlie! Quisiera consultar este pedido:\n\n`
+        : `¡Hola! Quisiera consultar este pedido:\n\n`;
+      message += `Cápsulas a medida (${customMixCartPricing.totalJars} frascos · ${customMixCartPricing.totalJars * 16} cápsulas)\n\n`;
+
+      customMixCart.forEach(item => {
+        message += `${item.quantity}× mezcla (${item.quantity * 16} cápsulas)\n`;
+        formatCustomMixIngredients(item.recipe).forEach(line => {
+          message += `• ${line}\n`;
         });
-
-      activeIngredients.forEach(([id, mg]) => {
-        const name = MUSHROOM_INGREDIENTS.find(i => i.id === id)?.name;
-        const suffix = id === 'niacina' ? ' (Stamets)' : '';
-        message += `• ${name}: ${mg} mg/cap${suffix}\n`;
+        message += `\n`;
       });
-      message += `\n`;
 
-      const roundedTotalSinDescuento = Math.round(customMixPricing.totalSinDescuento / 100) * 100;
-      const roundedDiscount = Math.max(0, roundedTotalSinDescuento - customMixPricing.totalFinal);
+      const roundedDiscount = Math.max(
+        0,
+        customMixCartPricing.totalSinDescuento - customMixCartPricing.totalFinal
+      );
 
-      if (customMixPricing.descuentoAplicado) {
-        message += `Subtotal: $${roundedTotalSinDescuento.toLocaleString()}\n`;
-        message += `Descuento 10%: -$${roundedDiscount.toLocaleString()}\n`;
-        message += `*Total productos: $${customMixPricing.totalFinal.toLocaleString()}*\n`;
+      if (customMixCartPricing.descuentoAplicado) {
+        message += `Subtotal: $${customMixCartPricing.totalSinDescuento.toLocaleString()}\n`;
+        message += `Descuento ${customMixCartPricing.discountRate * 100}%: -$${roundedDiscount.toLocaleString()}\n`;
+        message += `*Total productos: $${customMixCartPricing.totalFinal.toLocaleString()}*\n`;
       } else {
-        message += `*Total:* $${customMixPricing.totalFinal.toLocaleString()}\n`;
+        message += `*Total:* $${customMixCartPricing.totalFinal.toLocaleString()}\n`;
       }
     } else {
       message += `Productos:\n`;
@@ -1574,7 +1667,12 @@ export default function App() {
     window.open(url, '_blank');
   };
 
-  const openSafetyCheck = (toSeller: boolean) => {
+  const openSafetyCheck = (toSeller: boolean, isCustom = false) => {
+    if (isCustom) {
+      if (customMixCart.length === 0) return;
+      handleWhatsApp(toSeller, true);
+      return;
+    }
     setPendingWhatsApp({ toSeller });
     setShowSafetyCheck(true);
   };
@@ -1586,7 +1684,7 @@ export default function App() {
 
   const confirmSafetyAndWhatsApp = () => {
     if (!pendingWhatsApp) return;
-    handleWhatsApp(pendingWhatsApp.toSeller);
+    handleWhatsApp(pendingWhatsApp.toSeller, pendingWhatsApp.isCustom ?? false);
     closeSafetyCheck();
   };
 
@@ -1777,8 +1875,14 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-[#F0E6D2] overflow-y-auto"
+            className="fixed inset-0 z-[60] bg-[#F0E6D2] flex flex-col"
           >
+            <div
+              className={cn(
+                'flex-1 overflow-y-auto',
+                customMixCart.length > 0 && 'pb-44'
+              )}
+            >
             <div className="max-w-2xl mx-auto px-6 pt-8 pb-12">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
@@ -1786,7 +1890,7 @@ export default function App() {
                   <h2 className="text-2xl serif italic text-[#2F4F4F]">Cápsulas a Medida</h2>
                 </div>
                 <button 
-                  onClick={() => setIsSecretMarketOpen(false)}
+                  onClick={closeSecretMarket}
                   className="w-11 h-11 hover:bg-[#2F4F4F]/10 rounded-full flex items-center justify-center"
                 >
                   <X className="w-6 h-6" />
@@ -1794,8 +1898,11 @@ export default function App() {
               </div>
 
               <p className="text-base text-[#1a1a1a]/80 mb-6 leading-relaxed">
-                Armá tu frasco personalizado. Cada frasco contiene 16 cápsulas. 
-                Máximo 350 mg total por cápsula. Podés elegir un protocolo o ajustar los valores según tu necesidad.
+                Armá cada mezcla, agregala al pedido y repetí con otra combinación si querés (hasta 4 frascos en total).
+                Cada frasco tiene 16 cápsulas y máximo 350 mg por cápsula.
+              </p>
+              <p className="text-sm text-[#2F4F4F]/70 mb-6">
+                2 frascos: 10% OFF · 4 frascos: 20% OFF (en todo el pedido, como en la tienda principal).
               </p>
 
               {/* Presets */}
@@ -2089,61 +2196,150 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-sm font-medium">Cantidad de frascos (16 caps)</p>
-                  <p className="text-xs text-[#1a1a1a]/70">10% OFF llevando 2 o 3</p>
+                  <p className="text-sm font-medium">Frascos de esta mezcla</p>
+                  <p className="text-xs text-[#1a1a1a]/70">
+                    {customMixCartJars > 0
+                      ? `${customMixCartJars}/${CUSTOM_MIX_MAX_JARS} en el pedido`
+                      : `Hasta ${CUSTOM_MIX_MAX_JARS} frascos en total`}
+                  </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <button 
+                    type="button"
                     onClick={() => setCustomMix(p => ({ ...p, jars: Math.max(1, p.jars - 1) }))}
-                    className="w-11 h-11 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center"
+                    disabled={customMix.jars <= 1}
+                    className="w-11 h-11 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center disabled:opacity-30"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="text-xl font-medium w-8 text-center">{customMix.jars}</span>
                   <button 
-                    onClick={() => setCustomMix(p => ({ ...p, jars: Math.min(3, p.jars + 1) }))}
-                    className="w-11 h-11 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center"
+                    type="button"
+                    onClick={() => setCustomMix(p => ({ ...p, jars: Math.min(customMixMaxJarsToAdd, p.jars + 1) }))}
+                    disabled={customMix.jars >= customMixMaxJarsToAdd}
+                    className="w-11 h-11 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center disabled:opacity-30"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-6 pt-6 border-t border-[#1a1a1a]/5">
-                <div className="flex justify-between items-end">
-                  <div className="w-full">
-                    {customMixPricing.descuentoAplicado && (
-                      <p className="text-sm text-[#888] line-through mb-4">
-                        ${customMixPricing.totalSinDescuento.toLocaleString()}
-                      </p>
-                    )}
-                    <p className="text-sm font-bold uppercase tracking-widest text-[#1a1a1a] mb-1">
-                      TOTAL FINAL
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-mono font-bold text-[#5A5A40]">
-                        ${customMixPricing.totalFinal.toLocaleString()}
-                      </span>
-                      <span className="text-sm opacity-40">ARS</span>
+              <button
+                type="button"
+                onClick={addCustomMixToCart}
+                disabled={customMixTotalMg > 350 || customMixMaxJarsToAdd < 1}
+                className="w-full mb-10 flex items-center justify-center gap-2 bg-[#2F4F4F] text-white rounded-full py-4 px-6 hover:bg-[#244040] transition-colors font-sans text-sm font-medium disabled:opacity-40 disabled:pointer-events-none"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar al pedido
+              </button>
+
+              {customMixCart.length > 0 && (
+                <div className="mb-10 space-y-3">
+                  <p className="text-sm font-medium text-[#2F4F4F]">Tu pedido</p>
+                  {customMixCart.map((item, index) => (
+                    <div
+                      key={index}
+                      className="p-4 bg-white rounded-2xl border border-[#2F4F4F]/15 flex gap-3"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[#2F4F4F] mb-1">
+                          {item.quantity}× mezcla · {item.quantity * 16} cápsulas
+                        </p>
+                        <ul className="text-xs text-[#1a1a1a]/70 space-y-0.5">
+                          {formatCustomMixIngredients(item.recipe).map(line => (
+                            <li key={line}>{line}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="flex flex-col items-center justify-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => adjustCustomMixCartQty(index, 1)}
+                          disabled={customMixCartJars >= CUSTOM_MIX_MAX_JARS}
+                          className="w-9 h-9 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center disabled:opacity-30"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => adjustCustomMixCartQty(index, -1)}
+                          className="w-9 h-9 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    {customMixPricing.descuentoAplicado && (
-                      <p className="text-sm text-[#2F7D32] font-bold mt-2">
-                        (10% OFF aplicado)
-                      </p>
-                    )}
-                  </div>
+                  ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleWhatsApp(false, true)}
-                  className="w-full flex items-center justify-center gap-2 border border-[#1a1a1a]/20 rounded-full py-4 px-6 hover:bg-[#1a1a1a]/5 transition-colors font-sans text-sm font-medium"
-                >
-                  Guardar en WhatsApp
-                </button>
-              </div>
+              )}
+
+              {customMixCart.length === 0 && (
+                <p className="text-sm text-[#1a1a1a]/60 italic pt-6 border-t border-[#1a1a1a]/5">
+                  Agregá al menos una mezcla al pedido para consultar stock o enviar por WhatsApp.
+                </p>
+              )}
             </div>
+            </div>
+
+            <AnimatePresence>
+              {customMixCart.length > 0 && (
+                <motion.div
+                  initial={{ y: 100 }}
+                  animate={{ y: 0 }}
+                  exit={{ y: 100 }}
+                  className="shrink-0 border-t border-[#2F4F4F]/15 bg-[#F0E6D2] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"
+                >
+                  <div className="max-w-2xl mx-auto flex flex-col gap-4">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-xs uppercase tracking-widest text-[#2F4F4F]/70 mb-1">Total Estimado</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-light">
+                            ${customMixCartPricing.totalFinal.toLocaleString()}
+                          </span>
+                          {customMixCartPricing.descuentoAplicado && (
+                            <span className="text-sm line-through text-[#2F4F4F]/60">
+                              ${customMixCartPricing.totalSinDescuento.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-[#2F4F4F]">
+                          {customMixCartPricing.totalJars} frascos
+                        </p>
+                        {customMixCartPricing.descuentoAplicado && (
+                          <p className="text-xs text-[#AB5541] font-bold">
+                            -{customMixCartPricing.discountRate * 100}% aplicado
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => openSafetyCheck(true, true)}
+                        className="flex items-center justify-center gap-2 bg-[#2F4F4F] text-white rounded-full py-4 px-6 hover:bg-[#244040] transition-colors font-sans text-sm font-medium"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        Consultar Stock
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openSafetyCheck(false, true)}
+                        className="flex items-center justify-center gap-2 border border-[#2F4F4F]/20 rounded-full py-4 px-6 hover:bg-[#2F4F4F]/10 transition-colors font-sans text-sm font-medium"
+                      >
+                        Guardar en WhatsApp
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
