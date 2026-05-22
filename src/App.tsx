@@ -284,7 +284,6 @@ interface CustomMixCartItem {
 }
 
 const CUSTOM_MIX_MAX_JARS = 4;
-const CUSTOM_MIX_BASE_FEE = 5500;
 
 const DEFAULT_CUSTOM_MIX: CustomMix = {
   ingredients: {
@@ -320,6 +319,7 @@ function computeCustomMixJarCost(recipe: CustomMixRecipe): number {
     (A_adapt / 1000) * 760 +
     (A_nia / 1000) * 100;
 
+  // 3382 = costos fijos por frasco (empaque, mano de obra, etc.) ya incluidos en el precio del frasco
   return 16 * C_ing_cap + 3382;
 }
 
@@ -334,13 +334,16 @@ function computeCustomCartPricing(cart: CustomMixCartItem[]) {
   );
   const totalJars = customMixCartTotalJars(cart);
   const discountRate = customMixDiscountRate(totalJars);
-  const subtotalConDescuento = subtotal * (1 - discountRate);
-  const totalSinDescuento = Math.round((subtotal + CUSTOM_MIX_BASE_FEE) / 100) * 100;
-  const totalFinal = Math.round((subtotalConDescuento + CUSTOM_MIX_BASE_FEE) / 100) * 100;
+  const discountAmount =
+    discountRate > 0 ? Math.round(subtotal * discountRate) : 0;
+  const subtotalConDescuento = subtotal - discountAmount;
+  const totalSinDescuento = Math.round(subtotal);
+  const totalFinal = Math.round(subtotalConDescuento);
 
   return {
     subtotal,
     subtotalConDescuento,
+    discountAmount,
     totalSinDescuento,
     totalFinal,
     discountRate,
@@ -426,11 +429,9 @@ function buildCustomMixWhatsAppBody(
     message += `\n`;
   });
 
-  const roundedDiscount = Math.max(0, pricing.totalSinDescuento - pricing.totalFinal);
-
   if (pricing.descuentoAplicado) {
     message += `Subtotal: $${pricing.totalSinDescuento.toLocaleString('es-AR')}\n`;
-    message += `Descuento ${pricing.discountRate * 100}%: -$${roundedDiscount.toLocaleString('es-AR')}\n`;
+    message += `Descuento ${pricing.discountRate * 100}%: -$${pricing.discountAmount.toLocaleString('es-AR')}\n`;
     message += `*Total productos: $${pricing.totalFinal.toLocaleString('es-AR')}*\n`;
   } else {
     message += `*Total productos: $${pricing.totalFinal.toLocaleString('es-AR')}*\n`;
