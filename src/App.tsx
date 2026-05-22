@@ -407,7 +407,8 @@ function formatCustomMixLinePrice(
     return `*$${lineSubtotal.toLocaleString('es-AR')}*`;
   }
   const lineDiscounted = Math.round(lineSubtotal * (1 - discountRate));
-  return `~~$${lineSubtotal.toLocaleString('es-AR')}~~ *$${lineDiscounted.toLocaleString('es-AR')}*`;
+  // WhatsApp: tachado con ~uno~ (~~ no funciona bien en móvil)
+  return `~$${lineSubtotal.toLocaleString('es-AR')}~ *$${lineDiscounted.toLocaleString('es-AR')}*`;
 }
 
 function buildCustomMixWhatsAppBody(
