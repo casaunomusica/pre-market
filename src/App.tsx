@@ -1718,7 +1718,7 @@ export default function App() {
     if (isCustom) {
       message = toSeller
         ? `¡Hola Charlie! Quisiera consultar este pedido:\n\n`
-        : `¡Hola! Quisiera consultar este pedido:\n\n`;
+        : `*Presupuesto*\n\n`;
       message += buildCustomMixWhatsAppBody(customMixCart, customMixCartPricing);
     } else {
       message += `Productos:\n`;
@@ -1748,9 +1748,11 @@ export default function App() {
     message += `• Retiro por Tribunales (sin costo)\n`;
     message += `• Envío por Uber Moto _(costo extra ≈ $3.000–$8.000)_\n\n`;
     message += `→ Pago único (productos + envío si aplica) por transferencia una vez que confirme stock y costo exacto de envío.\n`;
-    message += `Alias: *unmundomejor.gracias*\n\n`;
-    message += `¿Tenés stock disponible? ¿Para cuándo podrías tenerlo listo?\n`;
-    message += `Gracias!`;
+    message += `Alias: *unmundomejor.gracias*`;
+    if (!isCustom || toSeller) {
+      message += `\n\n¿Tenés stock disponible? ¿Para cuándo podrías tenerlo listo?\n`;
+      message += `Gracias!`;
+    }
 
     const encodedMessage = encodeURIComponent(message);
     const url = toSeller 
