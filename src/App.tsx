@@ -239,30 +239,15 @@ function laFuerzaMaxCosMg(recipe: CustomMixRecipe): number {
   return Math.max(0, 350 - customMixOtherActiveMg(recipe, 'cositas'));
 }
 
-function laFuerzaMaxSliderIndex(maxCosMg: number): number {
-  if (maxCosMg < LA_FUERZA_SLIDER_STEPS[0]) return 0;
-  let maxIdx = 0;
-  LA_FUERZA_SLIDER_STEPS.forEach((step, idx) => {
-    if (step <= maxCosMg) maxIdx = idx;
-  });
-  return maxIdx;
-}
-
 function laFuerzaMgFromSliderIndex(index: number, maxCosMg: number): number {
   if (maxCosMg < LA_FUERZA_SLIDER_STEPS[0]) return 0;
-  const clampedIndex = Math.min(
-    Math.max(0, index),
-    laFuerzaMaxSliderIndex(maxCosMg),
-    LA_FUERZA_SLIDER_STEPS.length - 1
-  );
-  return LA_FUERZA_SLIDER_STEPS[clampedIndex]!;
-}
-
-function capLaFuerzaMg(cositasMg: number, recipe: CustomMixRecipe): number {
-  const maxCos = laFuerzaMaxCosMg(recipe);
-  if (maxCos < LA_FUERZA_SLIDER_STEPS[0]) return 0;
-  const idx = laFuerzaSliderIndexFromMg(cositasMg);
-  return laFuerzaMgFromSliderIndex(idx, maxCos);
+  const desired =
+    LA_FUERZA_SLIDER_STEPS[
+      Math.min(Math.max(0, index), LA_FUERZA_SLIDER_STEPS.length - 1)
+    ];
+  if (desired <= maxCosMg) return desired;
+  const valid = LA_FUERZA_SLIDER_STEPS.filter(m => m <= maxCosMg);
+  return valid[valid.length - 1]!;
 }
 
 const WHATSAPP_NUMBER = '5493515915643';
@@ -1650,11 +1635,6 @@ export default function App() {
     () => laFuerzaMaxCosMg(customMixRecipeFromBuilder(customMix)),
     [customMix]
   );
-  const laFuerzaSliderMaxIndex = laFuerzaMaxSliderIndex(laFuerzaMaxCos);
-  const laFuerzaSliderValue = Math.min(
-    laFuerzaSliderIndexFromMg(customMix.ingredients.cositas),
-    laFuerzaSliderMaxIndex
-  );
 
   const customMixCartJars = useMemo(() => customMixCartTotalJars(customMixCart), [customMixCart]);
   const customMixMaxJarsToAdd = Math.max(0, CUSTOM_MIX_MAX_JARS - customMixCartJars);
@@ -2002,22 +1982,12 @@ export default function App() {
                 {PRESETS.map(preset => (
                   <button
                     key={preset.id}
-                    onClick={() => setCustomMix(prev => {
-                      const next = {
-                        ...prev,
-                        ingredients: { ...preset.ingredients },
-                        isNiacinaEnabled: preset.niacinaEnabled,
-                        isAshwagandhaActive: preset.ashwagandhaActive,
-                      };
-                      const recipe = customMixRecipeFromBuilder(next);
-                      return {
-                        ...next,
-                        ingredients: {
-                          ...next.ingredients,
-                          cositas: capLaFuerzaMg(next.ingredients.cositas, recipe),
-                        },
-                      };
-                    })}
+                    onClick={() => setCustomMix(prev => ({
+                      ...prev,
+                      ingredients: { ...preset.ingredients },
+                      isNiacinaEnabled: preset.niacinaEnabled,
+                      isAshwagandhaActive: preset.ashwagandhaActive,
+                    }))}
                     className="p-4 bg-white rounded-2xl border border-[#2F4F4F]/15 hover:border-[#AB5541]/30 transition-all text-left group"
                   >
                     <p className="text-xs font-bold text-[#2F4F4F] mb-1 uppercase tracking-wider">{preset.name}</p>
@@ -2076,10 +2046,10 @@ export default function App() {
                   <input 
                     type="range"
                     min={0}
-                    max={laFuerzaSliderMaxIndex}
+                    max={LA_FUERZA_SLIDER_STEPS.length - 1}
                     step={1}
                     disabled={laFuerzaMaxCos < LA_FUERZA_SLIDER_STEPS[0]}
-                    value={laFuerzaSliderValue}
+                    value={laFuerzaSliderIndexFromMg(customMix.ingredients.cositas)}
                     onChange={(e) => {
                       const idx = parseInt(e.target.value, 10);
                       const val = laFuerzaMgFromSliderIndex(idx, laFuerzaMaxCos);
@@ -2126,20 +2096,10 @@ export default function App() {
                       const otherTotal = customMixTotalMg - customMix.ingredients.melena;
                       const allowed = Math.max(0, 350 - otherTotal);
                       const val = Math.min(raw, allowed);
-                      setCustomMix(prev => {
-                        const nextIngredients = { ...prev.ingredients, melena: val };
-                        const recipe = customMixRecipeFromBuilder({
-                          ...prev,
-                          ingredients: nextIngredients,
-                        });
-                        return {
-                          ...prev,
-                          ingredients: {
-                            ...nextIngredients,
-                            cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
-                          },
-                        };
-                      });
+                      setCustomMix(prev => ({
+                        ...prev,
+                        ingredients: { ...prev.ingredients, melena: val }
+                      }));
                     }}
                     className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#8B7D6B] bg-[#F0E6D2]/60"
                   />
@@ -2153,17 +2113,7 @@ export default function App() {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 bg-[#F0E6D2]/60 p-1 rounded-xl">
                       <button 
-                        onClick={() => setCustomMix(prev => {
-                          const next = { ...prev, isAshwagandhaActive: false };
-                          const recipe = customMixRecipeFromBuilder(next);
-                          return {
-                            ...next,
-                            ingredients: {
-                              ...next.ingredients,
-                              cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
-                            },
-                          };
-                        })}
+                        onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: false }))}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                           !customMix.isAshwagandhaActive ? "bg-[#F0E6D2] shadow-sm text-[#7D2D2D]" : "text-[#2F4F4F]/70"
@@ -2172,17 +2122,7 @@ export default function App() {
                         Reishi
                       </button>
                       <button 
-                        onClick={() => setCustomMix(prev => {
-                          const next = { ...prev, isAshwagandhaActive: true };
-                          const recipe = customMixRecipeFromBuilder(next);
-                          return {
-                            ...next,
-                            ingredients: {
-                              ...next.ingredients,
-                              cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
-                            },
-                          };
-                        })}
+                        onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: true }))}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                           customMix.isAshwagandhaActive ? "bg-[#F0E6D2] shadow-sm text-[#D4B483]" : "text-[#2F4F4F]/70"
@@ -2214,20 +2154,10 @@ export default function App() {
                       const otherTotal = customMixTotalMg - currentVal;
                       const allowed = Math.max(0, 350 - otherTotal);
                       const val = Math.min(raw, allowed);
-                      setCustomMix(prev => {
-                        const nextIngredients = { ...prev.ingredients, [key]: val };
-                        const recipe = customMixRecipeFromBuilder({
-                          ...prev,
-                          ingredients: nextIngredients,
-                        });
-                        return {
-                          ...prev,
-                          ingredients: {
-                            ...nextIngredients,
-                            cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
-                          },
-                        };
-                      });
+                      setCustomMix(prev => ({
+                        ...prev,
+                        ingredients: { ...prev.ingredients, [key]: val }
+                      }));
                     }}
                     className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[#F0E6D2]/60"
                     style={{ accentColor: customMix.isAshwagandhaActive ? '#D4B483' : '#7D2D2D' }}
@@ -2240,17 +2170,7 @@ export default function App() {
                   !customMix.isNiacinaEnabled ? "border-[#2F4F4F]/15" : "border-[#F27D26]/30 shadow-sm shadow-[#F27D26]/5"
                 )}>
                   <div className="flex justify-between items-center cursor-pointer" onClick={() => {
-                    setCustomMix(prev => {
-                      const next = { ...prev, isNiacinaEnabled: !prev.isNiacinaEnabled };
-                      const recipe = customMixRecipeFromBuilder(next);
-                      return {
-                        ...next,
-                        ingredients: {
-                          ...next.ingredients,
-                          cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
-                        },
-                      };
-                    });
+                    setCustomMix(prev => ({ ...prev, isNiacinaEnabled: !prev.isNiacinaEnabled }));
                   }}>
                     <div className="flex items-center gap-3">
                       <div className={cn(
@@ -2305,20 +2225,10 @@ export default function App() {
                               disabled={isDisabled}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setCustomMix(prev => {
-                                  const nextIngredients = { ...prev.ingredients, niacina: mg };
-                                  const recipe = customMixRecipeFromBuilder({
-                                    ...prev,
-                                    ingredients: nextIngredients,
-                                  });
-                                  return {
-                                    ...prev,
-                                    ingredients: {
-                                      ...nextIngredients,
-                                      cositas: capLaFuerzaMg(prev.ingredients.cositas, recipe),
-                                    },
-                                  };
-                                });
+                                setCustomMix(prev => ({
+                                  ...prev,
+                                  ingredients: { ...prev.ingredients, niacina: mg }
+                                }));
                               }}
                               className={cn(
                                 "py-2 rounded-xl text-xs font-bold transition-all border",
