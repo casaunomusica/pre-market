@@ -198,8 +198,8 @@ const MUSHROOM_INGREDIENTS: MushroomIngredient[] = [
 ];
 
 const PRESETS = [
-  { id: 'fadiman', name: 'Fadiman Clásico', description: '100 mg Scelsium', ingredients: { cositas: 100, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
-  { id: 'stamets', name: 'Stamets Stack', description: '100 mg Scelsium, 200 mg Melena, 50 mg Niacina', ingredients: { cositas: 100, melena: 200, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
+  { id: 'clásico', name: 'Clásico', description: '100 mg Scelsium', ingredients: { cositas: 100, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
+  { id: 'Neuroplasticidad Stack', name: 'Neuroplasticidad Stack', description: '100 mg Scelsium, 200 mg Melena, 50 mg Niacina', ingredients: { cositas: 100, melena: 200, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
   { id: 'nocturno', name: 'Nocturno', description: '100 mg Scelsium, 250 mg Reishi', ingredients: { cositas: 100, melena: 0, reishi: 250, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
 ];
 
@@ -368,7 +368,7 @@ function formatCustomMixIngredients(recipe: CustomMixRecipe): string[] {
     })
     .map(([id, mg]) => {
       const name = MUSHROOM_INGREDIENTS.find(i => i.id === id)?.name;
-      const suffix = id === 'niacina' ? ' (Stamets)' : '';
+      const suffix = id === 'niacina' ? ' (Neuroplasticidad Stack)' : '';
       return `${name}: ${mg} mg/cap${suffix}`;
     });
 }
@@ -378,7 +378,8 @@ function formatCustomMixLineTitle(item: CustomMixCartItem): string {
   if (ingredientLines.length === 1) {
     return `${item.quantity}× ${ingredientLines[0]!.replace(': ', ' ')}`;
   }
-  return `${item.quantity}× mezcla personalizada`;
+  const mixLabel = item.quantity === 1 ? 'mezcla personalizada' : 'mezclas personalizadas';
+  return `${item.quantity}× ${mixLabel}`;
 }
 
 function formatCustomMixLinePrice(
@@ -401,7 +402,10 @@ function buildCustomMixWhatsAppBody(
   pricing: ReturnType<typeof computeCustomCartPricing>
 ): string {
   const totalCaps = pricing.totalJars * 16;
-  let message = `*Cápsulas a medida* · ${pricing.totalJars} frascos (${totalCaps} cápsulas)\n\n`;
+  const frascoLabel = pricing.totalJars === 1 ? 'frasco' : 'frascos';
+  const capsLabel = totalCaps === 1 ? 'cápsula' : 'cápsulas';
+  const totalProductLabel = pricing.totalJars === 1 ? 'Total producto' : 'Total productos';
+  let message = `*Cápsulas a medida* · ${pricing.totalJars} ${frascoLabel} (${totalCaps} ${capsLabel})\n\n`;
 
   cart.forEach(item => {
     message += `${formatCustomMixLineTitle(item)}\n`;
@@ -418,9 +422,9 @@ function buildCustomMixWhatsAppBody(
   if (pricing.descuentoAplicado) {
     message += `Subtotal: $${pricing.totalSinDescuento.toLocaleString('es-AR')}\n`;
     message += `Descuento ${pricing.discountRate * 100}%: -$${pricing.discountAmount.toLocaleString('es-AR')}\n`;
-    message += `*Total productos: $${pricing.totalFinal.toLocaleString('es-AR')}*\n`;
+    message += `*${totalProductLabel}: $${pricing.totalFinal.toLocaleString('es-AR')}*\n`;
   } else {
-    message += `*Total productos: $${pricing.totalFinal.toLocaleString('es-AR')}*\n`;
+    message += `*${totalProductLabel}: $${pricing.totalFinal.toLocaleString('es-AR')}*\n`;
   }
 
   return message;
@@ -1692,16 +1696,19 @@ export default function App() {
   };
 
   const handleWhatsApp = (toSeller: boolean, isCustom: boolean = false) => {
-    // Market (main cart): "Hola Charlie" (Secret Market mantiene "Hola" sin nombre)
-    let message = `¡Hola Charlie! Quisiera consultar este pedido:\n\n`;
+    const unitCount = isCustom ? customMixCartPricing.totalJars : totalBottles;
+    const productHeading = unitCount === 1 ? 'Producto' : 'Productos';
+    const totalProductLabel = unitCount === 1 ? 'Total producto' : 'Total productos';
+    const pagoProductWord = unitCount === 1 ? 'producto' : 'productos';
+
+    let message = toSeller
+      ? `¡Hola Charlie! Quisiera consultar este pedido:\n\n`
+      : `*Presupuesto*\n\n`;
 
     if (isCustom) {
-      message = toSeller
-        ? `¡Hola Charlie! Quisiera consultar este pedido:\n\n`
-        : `*Presupuesto*\n\n`;
       message += buildCustomMixWhatsAppBody(customMixCart, customMixCartPricing);
     } else {
-      message += `Productos:\n`;
+      message += `${productHeading}:\n`;
       cart.forEach(item => {
         let productName = item.product.name;
         let suffix = "";
@@ -1714,22 +1721,21 @@ export default function App() {
         message += `• ${item.quantity}x *${productName}*${suffix}\n`;
       });
       message += `\n`;
-      // "Subtotal" solo tiene sentido cuando hay oferta (2 o más frascos).
       if (totalBottles >= 2) {
         message += `Subtotal: $${subtotal.toLocaleString()}\n`;
         if (discount > 0) {
           message += `Descuento ${discount * 100}%: -$${(subtotal * discount).toLocaleString()}\n`;
         }
       }
-      message += `*Total productos: $${total.toLocaleString()}*\n`;
+      message += `*${totalProductLabel}: $${total.toLocaleString()}*\n`;
     }
 
     message += `\nEntrega:\n`;
     message += `• Retiro por Tribunales (sin costo)\n`;
     message += `• Envío por Uber Moto _(costo extra ≈ $3.000–$8.000)_\n\n`;
-    message += `→ Pago único (productos + envío si aplica) por transferencia una vez que confirme stock y costo exacto de envío.\n`;
+    message += `→ Pago único (${pagoProductWord} + envío si aplica) por transferencia una vez que confirme stock y costo exacto de envío.\n`;
     message += `Alias: *unmundomejor.gracias*`;
-    if (!isCustom || toSeller) {
+    if (toSeller) {
       message += `\n\n¿Tenés stock disponible? ¿Para cuándo podrías tenerlo listo?\n`;
       message += `Gracias!`;
     }
@@ -2011,11 +2017,11 @@ export default function App() {
                 >
                   <div className="space-y-6 text-base text-[#1a1a1a]/80 leading-relaxed">
                     <div>
-                      <p className="font-bold text-[#1a1a1a] mb-1">Protocolo Fadiman:</p>
+                      <p className="font-bold text-[#1a1a1a] mb-1">Protocolo Clásico:</p>
                       <p>Consiste en un día de dosificación seguido de dos días sin consumo (esquema 1:2). Se fundamenta en el aprovechamiento del "efecto del segundo día" o <span className="italic">afterglow</span> para mantener los beneficios residuales sin generar tolerancia farmacológica.</p>
                     </div>
                     <div>
-                      <p className="font-bold text-[#1a1a1a] mb-1">Stamets Stack:</p>
+                      <p className="font-bold text-[#1a1a1a] mb-1">Neuroplasticidad Stack:</p>
                       <p>Establece cuatro días de ingesta consecutivos seguidos de tres días de descanso. Combina psilocibina con hongo Melena de León (estimulante del factor de crecimiento neuronal) y Niacina, que actúa como vasodilatador para favorecer la distribución periférica de los compuestos.</p>
                     </div>
                     <div>
@@ -2444,7 +2450,7 @@ export default function App() {
               <h3 className="text-xl serif italic mb-4 text-red-600">Contraindicaciones</h3>
               <div className="text-sm text-[#1a1a1a]/70 leading-relaxed space-y-4">
                 <p>
-                  Stamets incluye niacina para mejorar la distribución de los compuestos en el sistema nervioso mediante vasodilatación.
+                Neuroplasticidad Stack incluye niacina para mejorar la distribución de los compuestos en el sistema nervioso mediante vasodilatación.
                 </p>
                 <p>
                   El rojecimiento (flush) es inofensivo pero exige precaución ante antecedentes cardíacos o hipertensión.
