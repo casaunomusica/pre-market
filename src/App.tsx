@@ -58,7 +58,7 @@ const PRODUCTS: Product[] = [
     id: 'melena-extract',
     name: 'Melena de León',
     description: 'Claridad mental · Neuroprotección · Salud digestiva',
-    price: 32000,
+    price: 33000,
     capsules: 30,
     mg: 500,
     icon: '🍄',
@@ -73,7 +73,7 @@ const PRODUCTS: Product[] = [
     id: 'reishi-extract',
     name: 'Reishi',
     description: 'Inmunidad · Regulación inflamatoria · Descanso reparador',
-    price: 32000,
+    price: 33000,
     capsules: 30,
     mg: 500,
     icon: '🍄',
@@ -88,7 +88,7 @@ const PRODUCTS: Product[] = [
     id: 'cordyceps-extract',
     name: 'Cordyceps',
     description: 'Energía celular · Resistencia física · Vitalidad',
-    price: 32000,
+    price: 33000,
     capsules: 30,
     mg: 500,
     icon: '🍄',
@@ -103,7 +103,7 @@ const PRODUCTS: Product[] = [
     id: 'ashwagandha-extract',
     name: 'Ashwagandha',
     description: 'Gestión del estrés · Equilibrio emocional · Relajación sostenida',
-    price: 32000,
+    price: 33000,
     capsules: 30,
     mg: 500,
     icon: '🌿',
@@ -118,7 +118,7 @@ const PRODUCTS: Product[] = [
     id: 'tremella-extract',
     name: 'Tremella',
     description: 'Ácido hialurónico vegetal · Hidratación profunda',
-    price: 32000,
+    price: 33000,
     capsules: 30,
     mg: 500,
     icon: '🍄',
@@ -133,7 +133,7 @@ const PRODUCTS: Product[] = [
     id: 'melena-classic',
     name: 'Melena de León · Clásica',
     description: 'Hongo entero molido • 1 o 2 cápsulas por día',
-    price: 17000,
+    price: 18000,
     capsules: 30,
     mg: 300,
     icon: '🍄',
@@ -148,7 +148,7 @@ const PRODUCTS: Product[] = [
     id: 'chlorella-extract',
     name: 'Chlorella',
     description: 'Detox de metales pesados · Sistema inmune · Oxigenación celular',
-    price: 16000,
+    price: 17000,
     capsules: 30,
     mg: 500,
     icon: '🌿',
@@ -190,7 +190,7 @@ const ADAPTOGEN_ALIASES: Record<string, string> = {
 };
 
 const MUSHROOM_INGREDIENTS: MushroomIngredient[] = [
-  { id: 'cositas', name: 'La Fuerza', costPerMg: 60, color: '#5A5A40' },
+  { id: 'cositas', name: 'Scelsium', costPerMg: 60, color: '#5A5A40' },
   { id: 'melena', name: 'Melena de León', costPerMg: 50, color: '#8B7D6B' },
   { id: 'reishi', name: 'Reishi', costPerMg: 50, color: '#7D2D2D' },
   { id: 'ashwagandha', name: 'Ashwagandha', costPerMg: 50, color: '#D4B483' },
@@ -198,12 +198,12 @@ const MUSHROOM_INGREDIENTS: MushroomIngredient[] = [
 ];
 
 const PRESETS = [
-  { id: 'fadiman', name: 'Fadiman Clásico', description: '100 mg La Fuerza', ingredients: { cositas: 100, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
-  { id: 'stamets', name: 'Stamets Stack', description: '100 mg La Fuerza, 200 mg Melena, 50 mg Niacina', ingredients: { cositas: 100, melena: 200, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
-  { id: 'nocturno', name: 'Nocturno', description: '100 mg La Fuerza, 250 mg Reishi', ingredients: { cositas: 100, melena: 0, reishi: 250, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
+  { id: 'fadiman', name: 'Fadiman Clásico', description: '100 mg Scelsium', ingredients: { cositas: 100, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
+  { id: 'stamets', name: 'Stamets Stack', description: '100 mg Scelsium, 200 mg Melena, 50 mg Niacina', ingredients: { cositas: 100, melena: 200, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
+  { id: 'nocturno', name: 'Nocturno', description: '100 mg Scelsium, 250 mg Reishi', ingredients: { cositas: 100, melena: 0, reishi: 250, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
 ];
 
-/** Escala La Fuerza (no lineal). Mínimo 50 mg; sin paso en 0. */
+/** Escala Scelsium (no lineal). Mínimo 50 mg; sin paso en 0. */
 const LA_FUERZA_SLIDER_STEPS = [50, 100, 150, 200, 250, 300, 350] as const;
 
 function laFuerzaSliderIndexFromMg(mg: number): number {
@@ -2027,12 +2027,12 @@ export default function App() {
               )}
 
               <div className="space-y-6 mb-12">
-                {/* 1. La Fuerza */}
+                {/* 1. Scelsium */}
                 <div className="flex flex-col gap-4 bg-white p-6 rounded-3xl border border-[#2F4F4F]/15">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-[#AB5541]/12 flex items-center justify-center text-xl">⚡</div>
-                      <span className="font-medium text-[#2F4F4F]">La Fuerza</span>
+                      <span className="font-medium text-[#2F4F4F]">Scelsium</span>
                     </div>
                     <motion.span 
                       key={customMix.ingredients.cositas}
