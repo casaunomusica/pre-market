@@ -197,12 +197,6 @@ const MUSHROOM_INGREDIENTS: MushroomIngredient[] = [
   { id: 'niacina', name: 'Niacina (B3)', costPerMg: 40, color: '#F27D26' }
 ];
 
-const PRESETS = [
-  { id: 'clásico', name: 'Clásico', description: '100 mg Scelsium', ingredients: { cositas: 100, melena: 0, reishi: 0, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false },
-  { id: 'Neuroplasticidad Stack', name: 'Neuroplasticidad Stack', description: '100 mg Scelsium, 200 mg Melena, 50 mg Niacina', ingredients: { cositas: 100, melena: 200, reishi: 0, ashwagandha: 0, niacina: 50 }, niacinaEnabled: true, ashwagandhaActive: false },
-  { id: 'nocturno', name: 'Nocturno', description: '100 mg Scelsium, 250 mg Reishi', ingredients: { cositas: 100, melena: 0, reishi: 250, ashwagandha: 0, niacina: 0 }, niacinaEnabled: false, ashwagandhaActive: false }
-];
-
 /** Escala Scelsium (no lineal). Mínimo 50 mg; sin paso en 0. */
 const LA_FUERZA_SLIDER_STEPS = [50, 100, 150, 200, 250, 300, 350] as const;
 
@@ -368,8 +362,7 @@ function formatCustomMixIngredients(recipe: CustomMixRecipe): string[] {
     })
     .map(([id, mg]) => {
       const name = MUSHROOM_INGREDIENTS.find(i => i.id === id)?.name;
-      const suffix = id === 'niacina' ? ' (Neuroplasticidad Stack)' : '';
-      return `${name}: ${mg} mg/cap${suffix}`;
+      return `${name}: ${mg} mg/cap`;
     });
 }
 
@@ -1536,7 +1529,6 @@ export default function App() {
   const [pendingWhatsApp, setPendingWhatsApp] = useState<{ toSeller: boolean; isCustom?: boolean } | null>(null);
   const [isSecretMarketOpen, setIsSecretMarketOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showProtocolInfo, setShowProtocolInfo] = useState(false);
   const [showNiacinaModal, setShowNiacinaModal] = useState(false);
   const [password, setPassword] = useState('');
   const [customMix, setCustomMix] = useState<CustomMix>(DEFAULT_CUSTOM_MIX);
@@ -1683,7 +1675,6 @@ export default function App() {
       ...DEFAULT_CUSTOM_MIX,
       ingredients: { ...DEFAULT_CUSTOM_MIX.ingredients },
     });
-    setShowProtocolInfo(false);
   };
 
   const openSecretMarket = () => {
@@ -1978,59 +1969,10 @@ export default function App() {
                 </button>
               </div>
 
-              <p className="text-base text-[#1a1a1a]/80 mb-6 leading-relaxed">
+              <p className="text-base text-[#1a1a1a]/80 mb-10 leading-relaxed">
                 Armá tu frasco personalizado. Cada frasco contiene 16 cápsulas. Máximo 350 mg total por cápsula.
-                Podés elegir un protocolo o ajustar los valores según tu necesidad.
+                Ajustá los valores según tu necesidad.
               </p>
-
-              {/* Presets */}
-              <div className="grid grid-cols-2 gap-3 mb-10">
-                {PRESETS.map(preset => (
-                  <button
-                    key={preset.id}
-                    onClick={() => setCustomMix(prev => ({
-                      ...prev,
-                      ingredients: { ...preset.ingredients },
-                      isNiacinaEnabled: preset.niacinaEnabled,
-                      isAshwagandhaActive: preset.ashwagandhaActive,
-                    }))}
-                    className="p-4 bg-white rounded-2xl border border-[#2F4F4F]/15 hover:border-[#AB5541]/30 transition-all text-left group"
-                  >
-                    <p className="text-xs font-bold text-[#2F4F4F] mb-1 uppercase tracking-wider">{preset.name}</p>
-                    <p className="text-sm text-[#1a1a1a]/80 leading-snug">{preset.description}</p>
-                  </button>
-                ))}
-                <button
-                  onClick={() => setShowProtocolInfo(!showProtocolInfo)}
-                  className="p-4 bg-[#AB5541]/10 rounded-2xl border border-[#2F4F4F]/15 hover:bg-[#AB5541]/15 transition-all text-center flex flex-col items-center justify-center gap-1"
-                >
-                  <Info className="w-4 h-4 text-[#2F4F4F]" />
-                  <span className="text-xs font-bold text-[#2F4F4F] uppercase tracking-wider">Información sobre protocolos</span>
-                </button>
-              </div>
-
-              {showProtocolInfo && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  className="mb-10 p-6 bg-white rounded-3xl border border-[#2F4F4F]/15 overflow-hidden"
-                >
-                  <div className="space-y-6 text-base text-[#1a1a1a]/80 leading-relaxed">
-                    <div>
-                      <p className="font-bold text-[#1a1a1a] mb-1">Protocolo Clásico:</p>
-                      <p>Consiste en un día de dosificación seguido de dos días sin consumo (esquema 1:2). Se fundamenta en el aprovechamiento del "efecto del segundo día" o <span className="italic">afterglow</span> para mantener los beneficios residuales sin generar tolerancia farmacológica.</p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#1a1a1a] mb-1">Neuroplasticidad Stack:</p>
-                      <p>Establece cuatro días de ingesta consecutivos seguidos de tres días de descanso. Combina psilocibina con hongo Melena de León (estimulante del factor de crecimiento neuronal) y Niacina, que actúa como vasodilatador para favorecer la distribución periférica de los compuestos.</p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#1a1a1a] mb-1">Nightcap:</p>
-                      <p>La microdosis se ingiere inmediatamente antes de dormir, manteniendo la frecuencia de días de toma y descanso de cualquiera de los protocolos anteriores. Está indicado para personas que experimentan fatiga o ansiedad diurna, y se asocia a una intensificación de la actividad onírica.</p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
 
               <div className="space-y-6 mb-12">
                 {/* 1. Scelsium */}
@@ -2450,7 +2392,7 @@ export default function App() {
               <h3 className="text-xl serif italic mb-4 text-red-600">Contraindicaciones</h3>
               <div className="text-sm text-[#1a1a1a]/70 leading-relaxed space-y-4">
                 <p>
-                Neuroplasticidad Stack incluye niacina para mejorar la distribución de los compuestos en el sistema nervioso mediante vasodilatación.
+                  La Niacina mejora la distribución de los compuestos en el sistema nervioso mediante vasodilatación.
                 </p>
                 <p>
                   El rojecimiento (flush) es inofensivo pero exige precaución ante antecedentes cardíacos o hipertensión.
