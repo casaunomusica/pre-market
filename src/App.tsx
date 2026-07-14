@@ -1523,6 +1523,266 @@ function SafetyCheckModal({
   );
 }
 
+// ===================== ARMADOR DE PRESUPUESTOS (sección privada) =====================
+type ArmProd = { id: string; nm: string; meta: string; base: number; paused?: boolean };
+const ARM_EXTRACTOS: ArmProd[] = [
+  { id: 'melena-101', nm: 'Melena de León 10:1', meta: 'T-16 · 30 cáps', base: 33000 },
+  { id: 'ashwagandha', nm: 'Ashwagandha 5%', meta: 'T-16 · 30 cáps', base: 33000 },
+  { id: 'reishi-101', nm: 'Reishi 10:1', meta: 'T-16 · 30 cáps', base: 33000 },
+  { id: 'tremella-101', nm: 'Tremella 10:1', meta: 'T-16 · 30 cáps', base: 33000 },
+  { id: 'cordyceps-101', nm: 'Cordyceps 10:1', meta: 'T-16 · 30 cáps', base: 33000 },
+  { id: 'chlorella', nm: 'Chlorella', meta: 'T-16 · 30 cáps', base: 17000 },
+  { id: 'melena-clasica', nm: 'Melena de León · Clásica', meta: 'T-16 · 30 cáps', base: 18000 },
+];
+const ARM_SCELSIUM: ArmProd[] = [
+  { id: 'sc100', nm: 'Scelsium 100 mg', meta: 'T-8 · 16 cáps', base: 30000 },
+  { id: 'sc200', nm: 'Scelsium 200 mg', meta: 'T-8 · 16 cáps', base: 46000 },
+  { id: 'sc250', nm: 'Scelsium 250 mg', meta: 'T-8 · 16 cáps', base: 54000 },
+  { id: 'sc300', nm: 'Scelsium 300 mg', meta: 'T-8 · 16 cáps', base: 62000 },
+  { id: 'sc350', nm: 'Scelsium 350 mg', meta: 'T-8 · 16 cáps', base: 72000 },
+];
+const ARM_COMBOS: ArmProd[] = [
+  { id: 'combo1', nm: 'SC 100 mg + 250 mg extracto', meta: 'T-8 · 16 cáps', base: 35500 },
+  { id: 'combo2', nm: 'SC 200 mg + 150 mg extracto', meta: 'T-8 · 16 cáps', base: 49500 },
+];
+const ARM_CHOCOLATE: ArmProd[] = [
+  { id: 'choco', nm: 'Chocolate Funcional', meta: 'unidad', base: 35000, paused: true },
+];
+const ARM_GRAM_SCALE: Record<number, number> = { 2: 30000, 3: 42000, 4: 52000, 5: 60000, 6: 70500, 7: 80500, 8: 88000, 9: 94500, 10: 100000 };
+const ARM_ORDERED: ArmProd[] = [...ARM_EXTRACTOS, ...ARM_SCELSIUM, ...ARM_COMBOS, ...ARM_CHOCOLATE];
+const ARM_BY_ID: Record<string, ArmProd> = {};
+ARM_ORDERED.forEach(p => { ARM_BY_ID[p.id] = p; });
+const armMoney = (n: number) => '$' + Math.round(n).toLocaleString('es-AR');
+
+type ArmGrams = { mode: null | 'scale' | 'custom'; g: number; ppg: number };
+type ArmFree = { type: 'none' | 'pct' | 'amount'; value: number };
+
+function Armador({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const [chocoActive, setChocoActive] = useState(false);
+  const [grams, setGrams] = useState<ArmGrams>({ mode: null, g: 0, ppg: 10000 });
+  const [stdOverride, setStdOverride] = useState<number | null>(null);
+  const [free, setFree] = useState<ArmFree>({ type: 'none', value: 0 });
+  const [showFree, setShowFree] = useState(false);
+  const [freeDraftType, setFreeDraftType] = useState<ArmFree['type']>('none');
+  const [freeDraftVal, setFreeDraftVal] = useState('');
+  const [showPrev, setShowPrev] = useState(false);
+  const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setQty({}); setChocoActive(false); setGrams({ mode: null, g: 0, ppg: 10000 });
+      setStdOverride(null); setFree({ type: 'none', value: 0 });
+    }
+  }, [isOpen]);
+
+  const frascos = useMemo(() => {
+    let c = 0;
+    for (const id in qty) { if (ARM_BY_ID[id] && (id !== 'choco' || chocoActive)) c += qty[id]; }
+    return c;
+  }, [qty, chocoActive]);
+  const autoRate = frascos >= 4 ? 0.2 : frascos >= 2 ? 0.1 : 0;
+  const rate = stdOverride !== null ? stdOverride : autoRate;
+  const gramsTotal = (!grams.mode || grams.g <= 0) ? 0 : (grams.mode === 'scale' ? (ARM_GRAM_SCALE[grams.g] || 0) : grams.g * grams.ppg);
+
+  const items = useMemo(() => {
+    return ARM_ORDERED
+      .filter(p => (qty[p.id] || 0) > 0 && (p.id !== 'choco' || chocoActive))
+      .map(p => { const unit = Math.round(p.base * (1 - rate)); return { nm: p.nm, q: qty[p.id], base: p.base, unit, total: unit * qty[p.id] }; });
+  }, [qty, chocoActive, rate]);
+
+  const frascosDisc = items.reduce((a, i) => a + i.total, 0);
+  const baseSum = items.reduce((a, i) => a + i.base * i.q, 0) + gramsTotal;
+  const totalPre = frascosDisc + gramsTotal;
+  const freeAmt = free.type === 'pct' && free.value > 0 ? Math.round(totalPre * free.value / 100)
+    : free.type === 'amount' && free.value > 0 ? Math.min(totalPre, free.value) : 0;
+  const totalFinal = totalPre - freeAmt;
+
+  function buildText() {
+    const hasF = items.length > 0, hasG = gramsTotal > 0;
+    let s = `*Presupuesto*\n\n`;
+    if (!hasF && !hasG) return s + '_(sin ítems)_';
+    const blocks: string[] = [];
+    items.forEach(i => {
+      const lb = i.base * i.q;
+      const price = rate > 0 ? `~${armMoney(lb)}~  ${armMoney(i.total)} _${rate * 100}% off_` : `${armMoney(lb)}`;
+      blocks.push(`• ${i.q}x ${i.nm}\n${price}`);
+    });
+    if (hasG) blocks.push(`• ${grams.g} g de Scelsium 🍄\n${armMoney(gramsTotal)}`);
+    s += blocks.join('\n\n') + '\n\n';
+    if (freeAmt > 0) s += `Descuento libre: -${armMoney(freeAmt)}\n`;
+    s += `Total: *${armMoney(totalFinal)}*\n`;
+    s += `\nEntrega:\n• Retiro por Tribunales (sin costo)\n• Envío por Uber Moto _(costo extra ≈ $3.000–$8.000)_\n\n`;
+    s += `→ Pago único (productos + envío si aplica) por transferencia una vez que confirme stock y costo exacto de envío.\n\n`;
+    s += `Alias: *unmundomejor.gracias*`;
+    return s;
+  }
+
+  const openWA = () => window.open('https://wa.me/?text=' + encodeURIComponent(buildText()), '_blank');
+  const copyText = async () => {
+    try { await navigator.clipboard.writeText(buildText()); } catch { /* noop */ }
+    setToast('Copiado ✓'); setTimeout(() => setToast(''), 1600);
+  };
+  const setQ = (id: string, delta: number) => setQty(s => ({ ...s, [id]: Math.max(0, (s[id] || 0) + delta) }));
+
+  const ProductRow = (p: ArmProd) => {
+    const q = qty[p.id] || 0;
+    if (p.id === 'choco' && !chocoActive) {
+      return (
+        <div key={p.id} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-[#2F4F4F]/15 opacity-50">
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-[#2F4F4F]">{p.nm} <span className="ml-1 text-[10px] uppercase tracking-wider bg-[#F0E6D2] px-2 py-0.5 rounded-full">En pausa</span></div>
+            <div className="text-xs text-[#1a1a1a]/70 mt-0.5">{p.meta} · {armMoney(p.base)}</div>
+          </div>
+          <button onClick={() => setChocoActive(true)} className="text-xs font-bold text-[#AB5541] border border-[#AB5541] rounded-full px-3 py-1.5 shrink-0">Activar</button>
+        </div>
+      );
+    }
+    return (
+      <div key={p.id} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-[#2F4F4F]/15">
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-[#2F4F4F]">{p.nm}</div>
+          <div className="text-xs text-[#1a1a1a]/70 mt-0.5">
+            {p.meta} · {rate > 0 && <span className="text-[#AB5541] font-bold">{armMoney(p.base * (1 - rate))} </span>}<b className="text-[#2F4F4F]">{armMoney(p.base)}</b>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => setQ(p.id, -1)} disabled={q <= 0} className="w-9 h-9 rounded-full border border-[#2F4F4F]/15 flex items-center justify-center disabled:opacity-30"><Minus className="w-4 h-4" /></button>
+          <span className="w-5 text-center font-medium">{q}</span>
+          <button onClick={() => setQ(p.id, 1)} className="w-9 h-9 rounded-full border border-[#2F4F4F]/15 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderGroup = (title: string, list: ArmProd[], note?: string) => (
+    <div className="mb-6">
+      <div className="flex justify-between items-baseline mb-2">
+        <span className="text-[11px] uppercase tracking-[0.16em] font-bold text-[#2F4F4F]/55 font-sans">{title}</span>
+        {note && <span className="text-[11px] text-[#2F4F4F]/45 font-sans">{note}</span>}
+      </div>
+      <div className="space-y-2">{list.map(p => ProductRow(p))}</div>
+    </div>
+  );
+
+  const discChips: { v: number | null; l: string }[] = [
+    { v: null, l: `Auto ${autoRate * 100 || 0}%` },
+    { v: 0, l: '0%' }, { v: 0.1, l: '10%' }, { v: 0.2, l: '20%' },
+  ];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-[#F0E6D2] flex flex-col font-serif text-[#2F4F4F]">
+          <div className="shrink-0 sticky top-0 bg-[#F0E6D2] border-b border-[#2F4F4F]/15 px-5 py-3 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="w-5 h-5" />
+              <h2 className="text-base font-medium uppercase tracking-wide font-sans">Armador de Presupuestos</h2>
+            </div>
+            <button onClick={onClose} className="w-10 h-10 hover:bg-[#2F4F4F]/10 rounded-full flex items-center justify-center"><X className="w-6 h-6" /></button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto pb-52">
+            <div className="max-w-2xl mx-auto px-5 pt-6">
+              <h3 className="text-2xl italic mb-6">Armá el presupuesto</h3>
+
+              <div className="mb-6">
+                <div className="flex justify-between items-baseline mb-2">
+                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold text-[#2F4F4F]/55 font-sans">Scelsium en gramos</span>
+                  <span className="text-[11px] text-[#2F4F4F]/45 font-sans">no cuenta frascos · sin 10/20%</span>
+                </div>
+                <div className="bg-white p-4 rounded-2xl border border-[#2F4F4F]/15">
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setGrams(g => ({ ...g, mode: null, g: 0 }))} className={cn('text-sm font-semibold rounded-xl px-3 py-2 border font-sans', grams.mode === null ? 'bg-[#2F4F4F] text-white border-[#2F4F4F]' : 'bg-[#F0E6D2] text-[#2F4F4F] border-[#2F4F4F]/15')}>—</button>
+                    {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(g => (
+                      <button key={g} onClick={() => setGrams(s => ({ ...s, mode: 'scale', g }))} className={cn('text-sm font-semibold rounded-xl px-3 py-2 border font-sans', grams.mode === 'scale' && grams.g === g ? 'bg-[#2F4F4F] text-white border-[#2F4F4F]' : 'bg-[#F0E6D2] text-[#2F4F4F] border-[#2F4F4F]/15')}>{g} g</button>
+                    ))}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-[#2F4F4F]/15 font-sans">
+                    <div className="text-[11px] uppercase tracking-wider font-bold text-[#2F4F4F]/50 mb-2">Más de 10 g · precio/g editable</div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <button onClick={() => setGrams(s => ({ ...s, mode: 'custom', g: s.g > 10 ? s.g : 12 }))} className={cn('rounded-xl px-3 py-2 border font-semibold', grams.mode === 'custom' ? 'bg-[#2F4F4F] text-white border-[#2F4F4F]' : 'bg-[#F0E6D2] text-[#2F4F4F] border-[#2F4F4F]/15')}>Personalizado</button>
+                      <label className="text-[#2F4F4F]/70">g <input type="number" min={11} value={grams.mode === 'custom' ? (grams.g || '') : ''} onChange={e => { const v = parseInt(e.target.value || '0', 10); setGrams(s => ({ ...s, mode: 'custom', g: isNaN(v) ? 0 : v })); }} className="w-16 ml-1 px-2 py-1.5 border border-[#2F4F4F]/15 rounded-lg bg-[#F0E6D2]" placeholder="12" /></label>
+                      <label className="text-[#2F4F4F]/70">$/g <input type="number" min={0} step={500} value={grams.ppg} onChange={e => { const v = parseInt(e.target.value || '0', 10); setGrams(s => ({ ...s, ppg: isNaN(v) ? 0 : v })); }} className="w-24 ml-1 px-2 py-1.5 border border-[#2F4F4F]/15 rounded-lg bg-[#F0E6D2]" /></label>
+                    </div>
+                    {gramsTotal > 0 && <div className="mt-2 text-sm"><b>{grams.g} g</b> · {armMoney(gramsTotal)}{grams.mode === 'custom' && ` (${armMoney(grams.ppg)}/g)`}</div>}
+                  </div>
+                </div>
+              </div>
+
+              {renderGroup('Extractos · frasco', ARM_EXTRACTOS)}
+              {renderGroup('Scelsium puro · cápsulas', ARM_SCELSIUM)}
+              {renderGroup('Combos Scelsium + extracto', ARM_COMBOS)}
+              {renderGroup('Chocolate', ARM_CHOCOLATE)}
+            </div>
+          </div>
+
+          <div className="shrink-0 border-t border-[#2F4F4F]/15 bg-[#F0E6D2] px-5 py-3">
+            <div className="max-w-2xl mx-auto">
+              <div className="flex items-center gap-2 flex-wrap mb-2 font-sans">
+                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-[#2F4F4F]/45 mr-1">Descuento</span>
+                {discChips.map((c, i) => {
+                  const active = c.v === null ? stdOverride === null : stdOverride === c.v;
+                  return <button key={i} onClick={() => setStdOverride(c.v)} className={cn('text-xs font-bold rounded-full px-3 py-1.5 border', active ? 'bg-[#AB5541] text-white border-[#AB5541]' : 'bg-white text-[#2F4F4F] border-[#2F4F4F]/15', c.v === null && !active && 'italic font-normal')}>{c.l}</button>;
+                })}
+              </div>
+              <div className="flex justify-between items-end">
+                <div className="text-3xl font-light">{armMoney(totalFinal)}{baseSum > totalFinal && <span className="text-sm line-through text-[#2F4F4F]/50 ml-2">{armMoney(baseSum)}</span>}</div>
+                <div className="text-xs text-[#2F4F4F]/70 font-sans text-right">{frascos} frasco{frascos === 1 ? '' : 's'}{gramsTotal > 0 ? ' + gramos' : ''}</div>
+              </div>
+              <button onClick={() => { setFreeDraftType(free.type); setFreeDraftVal(free.type === 'none' ? '' : String(free.value)); setShowFree(true); }} className="text-xs font-bold text-[#2F4F4F]/70 underline font-sans mt-1">
+                {free.type === 'none' ? '+ Descuento libre' : `Descuento libre: ${free.type === 'pct' ? free.value + '%' : armMoney(free.value)} ✎`}
+              </button>
+              <div className="flex gap-2 mt-2">
+                <button onClick={openWA} className="flex-1 bg-[#2F4F4F] text-white rounded-full py-3.5 font-sans text-sm font-semibold flex items-center justify-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp</button>
+                <button onClick={() => setShowPrev(true)} className="w-12 rounded-full border border-[#2F4F4F]/20 flex items-center justify-center text-lg">👁</button>
+              </div>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {showPrev && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] bg-black/40 flex items-end" onClick={() => setShowPrev(false)}>
+                <motion.div initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} onClick={e => e.stopPropagation()} className="bg-[#F0E6D2] w-full max-w-2xl mx-auto rounded-t-3xl p-5 max-h-[82vh] overflow-auto">
+                  <h3 className="text-xl italic mb-3">Texto del presupuesto</h3>
+                  <pre className="whitespace-pre-wrap font-mono text-[12.5px] leading-relaxed bg-white border border-[#2F4F4F]/15 rounded-2xl p-4 text-[#1a1a1a]">{buildText()}</pre>
+                  <div className="flex gap-2 mt-4 font-sans">
+                    <button onClick={copyText} className="flex-1 bg-[#2F4F4F] text-white rounded-full py-3.5 text-sm font-semibold">Copiar</button>
+                    <button onClick={openWA} className="flex-1 border border-[#2F4F4F]/20 rounded-full py-3.5 text-sm font-semibold">Abrir WhatsApp</button>
+                  </div>
+                  <button onClick={() => setShowPrev(false)} className="w-full mt-2 text-sm text-[#2F4F4F]/70 font-sans py-2">Cerrar</button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showFree && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] bg-black/40 flex items-end" onClick={() => setShowFree(false)}>
+                <motion.div initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} onClick={e => e.stopPropagation()} className="bg-[#F0E6D2] w-full max-w-2xl mx-auto rounded-t-3xl p-5 font-sans">
+                  <h3 className="text-xl italic mb-1 font-serif">Descuento libre</h3>
+                  <p className="text-[13px] text-[#2F4F4F]/70 mb-3">Se aplica sobre el total, además del estándar. Para casos negociados.</p>
+                  <div className="flex gap-2 mb-3">
+                    {(['none', 'pct', 'amount'] as const).map(t => (
+                      <button key={t} onClick={() => setFreeDraftType(t)} className={cn('flex-1 text-sm font-bold rounded-xl py-2.5 border', freeDraftType === t ? 'bg-[#2F4F4F] text-white border-[#2F4F4F]' : 'bg-white text-[#2F4F4F] border-[#2F4F4F]/15')}>{t === 'none' ? 'Ninguno' : t === 'pct' ? 'Porcentaje %' : 'Monto $'}</button>
+                    ))}
+                  </div>
+                  <input type="number" inputMode="numeric" value={freeDraftVal} onChange={e => setFreeDraftVal(e.target.value)} placeholder="0" className="w-full text-base px-3 py-3 border border-[#2F4F4F]/15 rounded-xl bg-white" />
+                  <button onClick={() => { const val = parseInt(freeDraftVal || '0', 10) || 0; setFree(freeDraftType === 'none' || val <= 0 ? { type: 'none', value: 0 } : { type: freeDraftType, value: val }); setShowFree(false); }} className="w-full mt-4 bg-[#2F4F4F] text-white rounded-full py-3.5 text-sm font-semibold">Aplicar</button>
+                  <button onClick={() => setShowFree(false)} className="w-full mt-2 text-sm text-[#2F4F4F]/70 py-2">Cancelar</button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {toast && <div className="fixed left-1/2 -translate-x-1/2 bottom-40 z-[80] bg-[#2F4F4F] text-[#F0E6D2] text-sm font-semibold px-5 py-3 rounded-full font-sans">{toast}</div>}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+
 export default function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
@@ -1940,434 +2200,8 @@ export default function App() {
         />
       )}
 
-      {/* Secret Market Modal */}
-      <AnimatePresence>
-        {isSecretMarketOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-[#F0E6D2] flex flex-col"
-          >
-            <div
-              className={cn(
-                'flex-1 overflow-y-auto',
-                customMixCart.length > 0 && 'pb-44'
-              )}
-            >
-            <div className="max-w-2xl mx-auto px-6 pt-8 pb-12">
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-3">
-                  <FlaskConical className="w-6 h-6 text-[#2F4F4F]" />
-                  <h2 className="text-2xl serif italic text-[#2F4F4F]">Cápsulas a Medida</h2>
-                </div>
-                <button 
-                  onClick={closeSecretMarket}
-                  className="w-11 h-11 hover:bg-[#2F4F4F]/10 rounded-full flex items-center justify-center"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <p className="text-base text-[#1a1a1a]/80 mb-10 leading-relaxed">
-                Armá tu frasco personalizado. Cada frasco contiene 16 cápsulas. Máximo 350 mg total por cápsula.
-                Ajustá los valores según tu necesidad.
-              </p>
-
-              <div className="space-y-6 mb-12">
-                {/* 1. Scelsium */}
-                <div className="flex flex-col gap-4 bg-white p-6 rounded-3xl border border-[#2F4F4F]/15">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#AB5541]/12 flex items-center justify-center text-xl">⚡</div>
-                      <span className="font-medium text-[#2F4F4F]">Scelsium</span>
-                    </div>
-                    <motion.span 
-                      key={customMix.ingredients.cositas}
-                      initial={{ scale: 1.2, color: '#2F4F4F' }}
-                      animate={{ scale: 1, color: '#2F4F4F' }}
-                      className="font-mono font-bold"
-                    >
-                      {customMix.ingredients.cositas} mg
-                    </motion.span>
-                  </div>
-                  <input 
-                    type="range"
-                    min={0}
-                    max={LA_FUERZA_SLIDER_STEPS.length - 1}
-                    step={1}
-                    disabled={laFuerzaMaxCos < LA_FUERZA_SLIDER_STEPS[0]}
-                    value={laFuerzaSliderIndexFromMg(customMix.ingredients.cositas)}
-                    onChange={(e) => {
-                      const idx = parseInt(e.target.value, 10);
-                      const val = laFuerzaMgFromSliderIndex(idx, laFuerzaMaxCos);
-                      setCustomMix(prev => ({
-                        ...prev,
-                        ingredients: { ...prev.ingredients, cositas: val }
-                      }));
-                    }}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#2F4F4F] bg-[#F0E6D2]/60 disabled:opacity-40 disabled:cursor-not-allowed"
-                  />
-                  <div className="flex justify-between text-[10px] sm:text-xs text-[#2F4F4F]/70 font-mono leading-tight px-0.5">
-                    {LA_FUERZA_SLIDER_STEPS.map(step => (
-                      <span key={step} className="tabular-nums">
-                        {step}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. Melena de León */}
-                <div className="flex flex-col gap-4 bg-white p-6 rounded-3xl border border-[#2F4F4F]/15">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#F0E6D2]/70 flex items-center justify-center text-xl">🍄</div>
-                      <span className="font-medium text-[#2F4F4F]">Melena de León</span>
-                    </div>
-                    <motion.span 
-                      key={customMix.ingredients.melena}
-                      initial={{ scale: 1.2, color: '#8B7D6B' }}
-                      animate={{ scale: 1, color: '#8B7D6B' }}
-                      className="font-mono font-bold"
-                    >
-                      {customMix.ingredients.melena} mg
-                    </motion.span>
-                  </div>
-                  <input 
-                    type="range"
-                    min="0"
-                    max={350}
-                    step="10"
-                    value={customMix.ingredients.melena}
-                    onChange={(e) => {
-                      const raw = parseInt(e.target.value);
-                      const otherTotal = customMixTotalMg - customMix.ingredients.melena;
-                      const allowed = Math.max(0, 350 - otherTotal);
-                      const val = Math.min(raw, allowed);
-                      setCustomMix(prev => ({
-                        ...prev,
-                        ingredients: { ...prev.ingredients, melena: val }
-                      }));
-                    }}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#8B7D6B] bg-[#F0E6D2]/60"
-                  />
-                </div>
-
-                {/* 3. Reishi / Ashwagandha */}
-                <div className={cn(
-                  "flex flex-col gap-4 bg-white p-6 rounded-3xl border transition-all",
-                  customMix.isNiacinaEnabled ? "opacity-30 grayscale pointer-events-none border-[#2F4F4F]/15" : "border-[#2F4F4F]/15"
-                )}>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 bg-[#F0E6D2]/60 p-1 rounded-xl">
-                      <button 
-                        onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: false }))}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                          !customMix.isAshwagandhaActive ? "bg-[#F0E6D2] shadow-sm text-[#7D2D2D]" : "text-[#2F4F4F]/70"
-                        )}
-                      >
-                        Reishi
-                      </button>
-                      <button 
-                        onClick={() => setCustomMix(prev => ({ ...prev, isAshwagandhaActive: true }))}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                          customMix.isAshwagandhaActive ? "bg-[#F0E6D2] shadow-sm text-[#D4B483]" : "text-[#2F4F4F]/70"
-                        )}
-                      >
-                        Ashwagandha
-                      </button>
-                    </div>
-                    <motion.span 
-                      key={customMix.ingredients[customMix.isAshwagandhaActive ? 'ashwagandha' : 'reishi']}
-                      initial={{ scale: 1.2 }}
-                      animate={{ scale: 1 }}
-                      className="font-mono font-bold" 
-                      style={{ color: customMix.isAshwagandhaActive ? '#D4B483' : '#7D2D2D' }}
-                    >
-                      {customMix.ingredients[customMix.isAshwagandhaActive ? 'ashwagandha' : 'reishi']} mg
-                    </motion.span>
-                  </div>
-                  <input 
-                    type="range"
-                    min="0"
-                    max={350}
-                    step="10"
-                    value={customMix.ingredients[customMix.isAshwagandhaActive ? 'ashwagandha' : 'reishi']}
-                    onChange={(e) => {
-                      const raw = parseInt(e.target.value);
-                      const key = customMix.isAshwagandhaActive ? 'ashwagandha' : 'reishi';
-                      const currentVal = customMix.ingredients[key] || 0;
-                      const otherTotal = customMixTotalMg - currentVal;
-                      const allowed = Math.max(0, 350 - otherTotal);
-                      const val = Math.min(raw, allowed);
-                      setCustomMix(prev => ({
-                        ...prev,
-                        ingredients: { ...prev.ingredients, [key]: val }
-                      }));
-                    }}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[#F0E6D2]/60"
-                    style={{ accentColor: customMix.isAshwagandhaActive ? '#D4B483' : '#7D2D2D' }}
-                  />
-                </div>
-
-                {/* 4. Niacina (B3) */}
-                <div className={cn(
-                  "flex flex-col gap-4 bg-white p-6 rounded-3xl border transition-all relative overflow-hidden",
-                  !customMix.isNiacinaEnabled ? "border-[#2F4F4F]/15" : "border-[#F27D26]/30 shadow-sm shadow-[#F27D26]/5"
-                )}>
-                  <div className="flex justify-between items-center cursor-pointer" onClick={() => {
-                    setCustomMix(prev => ({ ...prev, isNiacinaEnabled: !prev.isNiacinaEnabled }));
-                  }}>
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all",
-                        customMix.isNiacinaEnabled ? "bg-[#F27D26]/20" : "bg-[#2F4F4F]/10 grayscale"
-                      )}>
-                        💊
-                      </div>
-                      <div className="flex flex-col">
-                        <span className={cn("font-medium transition-all", !customMix.isNiacinaEnabled && "opacity-40")}>Niacina (B3)</span>
-                        {!customMix.isNiacinaEnabled ? (
-                          <span className="text-xs text-[#F27D26] font-bold uppercase tracking-wider">Toca para habilitar</span>
-                        ) : (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowNiacinaModal(true);
-                            }}
-                            className="text-xs text-red-600 font-bold hover:underline text-left mt-0.5"
-                          >
-                            Ver contraindicaciones
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {customMix.isNiacinaEnabled && (
-                      <div className="flex items-center gap-3">
-                        <motion.span 
-                          key={customMix.ingredients.niacina}
-                          initial={{ scale: 1.2, color: '#F27D26' }}
-                          animate={{ scale: 1, color: '#F27D26' }}
-                          className="font-mono font-bold"
-                        >
-                          {customMix.ingredients.niacina} mg
-                        </motion.span>
-                        <div className="p-1.5 bg-red-50 rounded-full text-red-400">
-                          <X className="w-4 h-4" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {customMix.isNiacinaEnabled && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="grid grid-cols-4 gap-2">
-                        {[25, 50, 75, 100].map(mg => {
-                          const otherTotal = customMixTotalMg - customMix.ingredients.niacina;
-                          const isDisabled = otherTotal + mg > 350;
-                          return (
-                            <button
-                              key={mg}
-                              disabled={isDisabled}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCustomMix(prev => ({
-                                  ...prev,
-                                  ingredients: { ...prev.ingredients, niacina: mg }
-                                }));
-                              }}
-                              className={cn(
-                                "py-2 rounded-xl text-xs font-bold transition-all border",
-                                customMix.ingredients.niacina === mg 
-                                  ? "bg-[#F27D26] text-white border-[#F27D26]" 
-                                  : "bg-[#f5f5f0] text-[#1a1a1a]/70 border-transparent hover:border-[#F27D26]/20",
-                                isDisabled && "opacity-20 cursor-not-allowed"
-                              )}
-                            >
-                              {mg}mg
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-[32px] p-8 border border-[#1a1a1a]/5 mb-12">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-sm uppercase tracking-widest opacity-40">Total por Cápsula</span>
-                  <span className={cn(
-                    "font-mono font-bold",
-                    customMixTotalMg > 350 ? "text-red-500" : "text-[#5A5A40]"
-                  )}>
-                    {customMixTotalMg} / 350 mg
-                  </span>
-                </div>
-                <div className="w-full bg-[#2F4F4F]/15 h-2 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (customMixTotalMg / 350) * 100)}%` }}
-                    className="h-full bg-[#AB5541]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium">Frascos de esta mezcla</p>
-                  <p className="text-xs text-[#1a1a1a]/70">
-                    {customMixCartJars > 0
-                      ? `${customMixCartJars}/${CUSTOM_MIX_MAX_JARS} en el pedido`
-                      : `Hasta ${CUSTOM_MIX_MAX_JARS} frascos en total`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button 
-                    type="button"
-                    onClick={() => setCustomMix(p => ({ ...p, jars: Math.max(1, p.jars - 1) }))}
-                    disabled={customMix.jars <= 1}
-                    className="w-11 h-11 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center disabled:opacity-30"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="text-xl font-medium w-8 text-center">{customMix.jars}</span>
-                  <button 
-                    type="button"
-                    onClick={() => setCustomMix(p => ({ ...p, jars: Math.min(customMixMaxJarsToAdd, p.jars + 1) }))}
-                    disabled={customMix.jars >= customMixMaxJarsToAdd}
-                    className="w-11 h-11 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center disabled:opacity-30"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={addCustomMixToCart}
-                disabled={customMixTotalMg > 350 || customMixMaxJarsToAdd < 1}
-                className="w-full mb-10 flex items-center justify-center gap-2 bg-[#2F4F4F] text-white rounded-full py-4 px-6 hover:bg-[#244040] transition-colors font-sans text-sm font-medium disabled:opacity-40 disabled:pointer-events-none"
-              >
-                <Plus className="w-4 h-4" />
-                Agregar al pedido
-              </button>
-
-              {customMixCart.length > 0 && (
-                <div className="mb-10 space-y-3">
-                  <p className="text-sm font-medium text-[#2F4F4F]">Tu pedido</p>
-                  {customMixCart.map((item, index) => (
-                    <div
-                      key={index}
-                      className="p-4 bg-white rounded-2xl border border-[#2F4F4F]/15 flex gap-3"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-[#2F4F4F] mb-1">
-                          {item.quantity}× mezcla · {item.quantity * 16} cápsulas
-                        </p>
-                        <ul className="text-xs text-[#1a1a1a]/70 space-y-0.5">
-                          {formatCustomMixIngredients(item.recipe).map(line => (
-                            <li key={line}>{line}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="flex flex-col items-center justify-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => adjustCustomMixCartQty(index, 1)}
-                          disabled={customMixCartJars >= CUSTOM_MIX_MAX_JARS}
-                          className="w-9 h-9 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center disabled:opacity-30"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => adjustCustomMixCartQty(index, -1)}
-                          className="w-9 h-9 rounded-full border border-[#1a1a1a]/10 flex items-center justify-center"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="pt-6 border-t border-[#1a1a1a]/5 space-y-2 text-sm text-[#2F4F4F]/70 leading-relaxed">
-                <p>
-                  Armá cada mezcla, agregala al pedido y repetí con otra combinación si querés.
-                </p>
-                <p>2 frascos: 10% OFF · 4 frascos: 20% OFF</p>
-                {customMixCart.length === 0 && (
-                  <p className="text-[#1a1a1a]/60 italic">
-                    Agregá al menos una mezcla al pedido para consultar stock o enviar por WhatsApp.
-                  </p>
-                )}
-              </div>
-            </div>
-            </div>
-
-            <AnimatePresence>
-              {customMixCart.length > 0 && (
-                <motion.div
-                  initial={{ y: 100 }}
-                  animate={{ y: 0 }}
-                  exit={{ y: 100 }}
-                  className="shrink-0 border-t border-[#2F4F4F]/15 bg-[#F0E6D2] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"
-                >
-                  <div className="max-w-2xl mx-auto flex flex-col gap-4">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="text-xs uppercase tracking-widest text-[#2F4F4F]/70 mb-1">Total Estimado</p>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-3xl font-light">
-                            ${customMixCartPricing.totalFinal.toLocaleString()}
-                          </span>
-                          {customMixCartPricing.descuentoAplicado && (
-                            <span className="text-sm line-through text-[#2F4F4F]/60">
-                              ${customMixCartPricing.totalSinDescuento.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-[#2F4F4F]">
-                          {customMixCartPricing.totalJars} frascos
-                        </p>
-                        {customMixCartPricing.descuentoAplicado && (
-                          <p className="text-xs text-[#AB5541] font-bold">
-                            -{customMixCartPricing.discountRate * 100}% aplicado
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => openSafetyCheck(true, true)}
-                        className="flex items-center justify-center gap-2 bg-[#2F4F4F] text-white rounded-full py-4 px-6 hover:bg-[#244040] transition-colors font-sans text-sm font-medium"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        Consultar Stock
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openSafetyCheck(false, true)}
-                        className="flex items-center justify-center gap-2 border border-[#2F4F4F]/20 rounded-full py-4 px-6 hover:bg-[#2F4F4F]/10 transition-colors font-sans text-sm font-medium"
-                      >
-                        Guardar en WhatsApp
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Armador de Presupuestos (sección privada) */}
+      <Armador isOpen={isSecretMarketOpen} onClose={closeSecretMarket} />
 
       {/* Niacina Contraindications Modal */}
       <AnimatePresence>
