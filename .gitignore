@@ -1,0 +1,16 @@
+# Dependencias
+node_modules
+
+# Build
+dist
+
+# Entorno / secretos (se mantiene .env.example)
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel
+
+# Sistema
+.DS_Store
