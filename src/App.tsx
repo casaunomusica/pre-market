@@ -57,7 +57,7 @@ const PRODUCTS: Product[] = [
   {
     id: 'melena-extract',
     name: 'Melena de León',
-    description: 'Claridad mental · Neuroprotección · Salud digestiva',
+    description: 'Hongo Hericium erinaceus · 30% beta-glucanos',
     price: 33000,
     capsules: 30,
     mg: 500,
@@ -72,7 +72,7 @@ const PRODUCTS: Product[] = [
   {
     id: 'reishi-extract',
     name: 'Reishi',
-    description: 'Inmunidad · Regulación inflamatoria · Descanso reparador',
+    description: 'Hongo Ganoderma lucidum · 30% beta-glucanos',
     price: 33000,
     capsules: 30,
     mg: 500,
@@ -81,13 +81,13 @@ const PRODUCTS: Product[] = [
     kind: 'mushroom',
     color: '#7D2D2D', // Deep reddish brown
     imagePrompt: 'Minimalist watercolor botanical illustration of Reishi mushroom (Ganoderma lucidum), shiny reddish-brown kidney-shaped cap, woody texture, soft beige background, artistic wash',
-    adaptationPeriod: 'Algunos usuarios reportan mareos leves o prurito transitorio en los primeros días. La calma mental y la mejora del descanso suelen aparecer de forma gradual en las primeras dos semanas.',
+    adaptationPeriod: 'Algunos usuarios reportan mareos leves o prurito transitorio en los primeros días.',
     considerations: 'Inhibe enzimas hepáticas (CYP450): puede elevar niveles de estatinas, antihipertensivos y antidepresivos. Evitar con anticoagulantes y alcohol. Suspender 14 días antes de cirugía.'
   },
   {
     id: 'cordyceps-extract',
     name: 'Cordyceps',
-    description: 'Energía celular · Resistencia física · Vitalidad',
+    description: 'Hongo Cordyceps militaris · 30% beta-glucanos',
     price: 33000,
     capsules: 30,
     mg: 500,
@@ -96,13 +96,13 @@ const PRODUCTS: Product[] = [
     kind: 'mushroom',
     color: '#F27D26', // Vibrant orange
     imagePrompt: 'Minimalist watercolor botanical illustration of Cordyceps sinensis, slender orange club-shaped fungi, elegant line art with soft orange washes, warm background',
-    adaptationPeriod: 'Puede aparecer sequedad bucal leve en las primeras semanas. La vitalidad y resistencia física suelen notarse de forma progresiva.',
+    adaptationPeriod: 'Puede aparecer sequedad bucal leve en las primeras semanas.',
     considerations: 'Puede potenciar hipoglucemiantes (Metformina, insulina) y anticoagulantes. Precaución en enfermedades autoinmunes activas. Suspender 14 días antes de cirugía.'
   },
   {
     id: 'ashwagandha-extract',
     name: 'Ashwagandha',
-    description: 'Gestión del estrés · Equilibrio emocional · Relajación sostenida',
+    description: 'Raíz de Withania somnifera · 5% withanólidos',
     price: 33000,
     capsules: 30,
     mg: 500,
@@ -111,13 +111,13 @@ const PRODUCTS: Product[] = [
     kind: 'plant',
     color: '#D4B483', // Earthy yellow/beige
     imagePrompt: 'Minimalist watercolor botanical illustration of Ashwagandha plant (Withania somnifera), small green leaves and red berries, delicate roots, soft earthy background, artistic style',
-    adaptationPeriod: 'La reducción del estrés y la mejora del sueño suelen sentirse en las primeras dos semanas. La interrupción abrupta tras uso prolongado puede generar ansiedad o insomnio transitorio.',
+    adaptationPeriod: 'La interrupción abrupta tras uso prolongado puede generar ansiedad o insomnio transitorio.',
     considerations: 'Puede alterar hormonas tiroideas: evitar con medicación tiroidea. Riesgo hepático con paracetamol frecuente o alcohol. Evitar en embarazo. Usamos extracto de raíz, más seguro para el hígado.'
   },
   {
     id: 'tremella-extract',
     name: 'Tremella',
-    description: 'Ácido hialurónico vegetal · Hidratación profunda',
+    description: 'Hongo Tremella fuciformis · 35% beta-glucanos',
     price: 33000,
     capsules: 30,
     mg: 500,
@@ -126,13 +126,13 @@ const PRODUCTS: Product[] = [
     kind: 'mushroom',
     color: '#5E9E98', // Darker teal for legibility
     imagePrompt: 'Minimalist watercolor botanical illustration of Tremella mushroom (Snow fungus), translucent white frilly ruffles, jelly-like texture, soft cool background, delicate washes',
-    adaptationPeriod: 'Es el adaptógeno de aclimatación más suave del catálogo. Algunos usuarios notan mayor elasticidad en la piel y lubricación articular en las primeras semanas.',
+    adaptationPeriod: 'De aclimatación suave; suele requerir poco período de adaptación.',
     considerations: 'Puede potenciar hipoglucemiantes (Metformina, insulina). Posible interacción con estatinas y antidepresivos. Suspender 14 días antes de cirugía.'
   },
   {
     id: 'melena-classic',
     name: 'Melena de León · Clásica',
-    description: 'Hongo entero molido • 1 o 2 cápsulas por día',
+    description: 'Hongo entero molido · Hericium erinaceus · 15–25% beta-glucanos',
     price: 18000,
     capsules: 30,
     mg: 300,
@@ -147,7 +147,7 @@ const PRODUCTS: Product[] = [
   {
     id: 'chlorella-extract',
     name: 'Chlorella',
-    description: 'Detox de metales pesados · Sistema inmune · Oxigenación celular',
+    description: 'Microalga Chlorella',
     price: 17000,
     capsules: 30,
     mg: 500,
@@ -156,7 +156,6 @@ const PRODUCTS: Product[] = [
     kind: 'algae',
     color: '#2D6A4F',
     imagePrompt: 'Scientific illustration of Chlorella microalgae cells, vibrant green, clean style, soft cream background',
-    infoHeadline: 'Protocolo Detox · 2 semanas · Cada 3 meses',
     adaptationPeriod: 'Puede haber cambios en la frecuencia evacuatoria y gases leves en las primeras semanas por la interacción con la microbiota. Tomar con abundante agua.',
     considerations: 'Contraindicada en Hashimoto activo e hipertiroidismo de Graves por su contenido de yodo. Si tomás Levotiroxina, separar al menos 4 horas.'
   }
@@ -671,7 +670,7 @@ function SafetyCheckModal({
 }) {
   const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
 
-  const [showChlorellaStep] = useState(() => cart.some(i => i.product.kind !== 'algae'));
+  const [showChlorellaStep] = useState(false); // Chlorella reset/recompra desactivada (dictamen Saul 17/07)
   const firstActivePhase = showChlorellaStep ? ('chlorella' as const) : ('security' as const);
   const [phase, setPhase] = useState<SafetyPhase>('intro');
   const [navStack, setNavStack] = useState<NavFrame[]>(() => [{ phase: 'intro', cart: cloneCart(cart) }]);
@@ -1179,7 +1178,6 @@ function SafetyCheckModal({
           {(p5 === 'hashimoto' || p5 === 'graves') && (
             <div className="space-y-2 text-xs text-[#2F4F4F]/75 leading-relaxed">
               <p>La Chlorella contiene yodo concentrado y puede exacerbar el ataque autoinmune a la tiroides. No se recomienda en estos casos.</p>
-              <p>Como alternativa suave de reset: batidos de vegetales de hoja verde.</p>
             </div>
           )}
           {p5 === 'levo' && (
@@ -1289,7 +1287,7 @@ function SafetyCheckModal({
           )}
           {p8 === true && (
             <p className="text-xs text-[#2F4F4F]/75 leading-relaxed">
-              Los hongos medicinales contienen β-glucanos que pueden estimular la actividad de los macrófagos y linfocitos T, lo que podría exacerbar síntomas en condiciones autoinmunes activas. Consultá con tu médico.
+              Estos hongos contienen β-glucanos que pueden estimular la actividad de los macrófagos y linfocitos T, lo que podría exacerbar síntomas en condiciones autoinmunes activas. Consultá con tu médico.
             </p>
           )}
         </div>
@@ -2046,7 +2044,7 @@ export default function App() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[#F0E6D2] border-b border-[#2F4F4F]/15 px-6 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <h1 className="text-base font-medium tracking-tight serif uppercase letter-spacing-wider">Tienda de adaptógenos</h1>
+          <h1 className="text-base font-medium tracking-tight serif uppercase letter-spacing-wider">Un Mundo Mejor</h1>
         </div>
         <div className="flex items-center gap-4">
           <button 
